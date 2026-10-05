@@ -76,3 +76,8 @@ ansible-playbook -v -i hosts deploy.yml
 ## Sovereign admission alignment
 
 This repository remains an independent project/build boundary. Shared trust and interoperability semantics are documented in [`docs/SOVEREIGN_ADMISSION_ALIGNMENT.md`](docs/SOVEREIGN_ADMISSION_ALIGNMENT.md). Sovereign alignment does not merge repositories, builds, deployments, security domains, or runtime authority.
+
+
+## Source authority matrix
+
+Source ownership, active versus archival loci, external authority boundaries, and known divergences are documented in [`docs/SOURCE_AUTHORITY_MATRIX.md`](docs/SOURCE_AUTHORITY_MATRIX.md), governed portfolio-wide by `House-Of-Drip-Online/-MAEVN-HOLDINGS/topology/APEX_SOURCE_AUTHORITY_MATRIX.md` (APEX-SOURCE-001). File presence alone does not establish runtime, deployment, registry, execution, or certification authority.
