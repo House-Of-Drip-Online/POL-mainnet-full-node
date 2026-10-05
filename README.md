@@ -71,3 +71,8 @@ Run Ansible playbook to deploy to localhost
 cd ansible
 ansible-playbook -v -i hosts deploy.yml
 ```
+
+
+## Sovereign admission alignment
+
+This repository remains an independent project/build boundary. Shared trust and interoperability semantics are documented in [`docs/SOVEREIGN_ADMISSION_ALIGNMENT.md`](docs/SOVEREIGN_ADMISSION_ALIGNMENT.md). Sovereign alignment does not merge repositories, builds, deployments, security domains, or runtime authority.
