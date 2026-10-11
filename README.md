@@ -1,5 +1,8 @@
 # Deploy matic-mainnet-full-node
 
+> **CURRENTNESS WARNING — 2026-10-11:** This repository is a historical Polygon node deployment source, **not an operating, synchronized, production-certified Polygon RPC node**. Ubuntu 18.04, pre-V2 Heimdall, and old Ansible/docker-compose commands are historical, not certified 2026 deployment steps. Do not deploy its commands without the compatibility review in [NODE_READINESS_2026-10-11.md](docs/NODE_READINESS_2026-10-11.md). The original instructions below are retained for audit/history.
+
+
 Push button deployment of Matic/Polygon mainnet full node
 
 Polygon is a protocol and a framework for building and connecting Ethereum-compatible blockchain networks. Aggregating scalable solutions on Ethereum supporting a multi-chain Ethereum ecosystem.
