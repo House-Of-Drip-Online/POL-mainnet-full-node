@@ -1,0 +1,39 @@
+---
+# This playbook STAGES trusted packages; does not install, start nodes,
+# expose RPC ports, create billable infrastructure or broadcast transactions.
+- name: Stage hash-verified Polygon 137 node artifacts (no service activation)
+  hosts: polygon_node
+  gather_facts: true
+  become: true
+  vars:
+    release_lock: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/release-lock.json') | from_json }}"
+    stage_dir: /var/cache/omega-polygon-node/releases
+  tasks:
+    - name: Assert the release lock is for the intended network and architecture
+      ansible.builtin.assert:
+        that:
+          - release_lock.schema == 'omega.polygon137.node-release-lock.v1'
+          - release_lock.chainId == 137
+          - release_lock.architecture == 'amd64'
+          - ansible_architecture == 'x86_64'
+          - release_lock.bor.tag == 'v2.11.0'
+          - release_lock.heimdall.tag == 'v0.13.2'
+    - name: Create private staging directory
+      ansible.builtin.file:
+        path: "{{ stage_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0750'
+    - name: Download and verify each official pinned release artifact
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ stage_dir }}/{{ item.name }}"
+        checksum: "sha256:{{ item.sha256 }}"
+        owner: root
+        group: root
+        mode: '0640'
+        timeout: 60
+      loop: "{{ release_lock.bor.artifacts + release_lock.heimdall.artifacts }}"
+      loop_control:
+        label: "{{ item.name }}"
