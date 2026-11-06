@@ -1,0 +1,23 @@
+{
+  "schema": "omega.polygon137.node-release-lock.v1",
+  "chainId": 137,
+  "architecture": "amd64",
+  "releaseDate": "2026-11-06",
+  "bor": {
+    "tag": "v2.11.0",
+    "hardfork": "Uburu",
+    "artifacts": [
+      {"name":"bor-v2.11.0-amd64.deb","url":"https://github.com/0xPolygon/bor/releases/download/v2.11.0/bor-v2.11.0-amd64.deb","sha256":"01a8e868cf493933e3e1e94f072a734eb7f41654c00fdc746fd9b2e4689f3edb"},
+      {"name":"bor-mainnet-sentry-config_v2.11.0-all.deb","url":"https://github.com/0xPolygon/bor/releases/download/v2.11.0/bor-mainnet-sentry-config_v2.11.0-all.deb","sha256":"882a35a489ba7140b8b29f645b24809df23320065bc6f1b6571db38adc6dca7d"}
+    ]
+  },
+  "heimdall": {
+    "tag": "v0.13.2",
+    "hardfork": "Karwar",
+    "artifacts": [
+      {"name":"heimdall-v0.13.2-amd64.deb","url":"https://github.com/0xPolygon/heimdall-v2/releases/download/v0.13.2/heimdall-v0.13.2-amd64.deb","sha256":"7ddaa5cc243fef4a744e5899b967a0df8bc9da5e7b297b4e10e7d47b8736917c"},
+      {"name":"heimdall-mainnet-sentry-config_v0.13.2-all.deb","url":"https://github.com/0xPolygon/heimdall-v2/releases/download/v0.13.2/heimdall-mainnet-sentry-config_v0.13.2-all.deb","sha256":"21deca9ad0466174dd526e47852bf7a9fd7d5d04eb3d7faef6e99630dcb3741a"}
+    ]
+  },
+  "provenance": "0xPolygon official GitHub release asset digests, confirmed November 6 2026; recheck releases and security notices immediately before deployment"
+}
