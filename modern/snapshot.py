@@ -151,6 +151,10 @@ def extract_tar(stream,destination,prefix,max_bytes):
         for member in archive:
             count+=1
             name=PurePosixPath(member.name)
+            # PublicNode includes this regular file at archive root. Keep the
+            # locally generated validator state; never restore another identity.
+            if name==PurePosixPath('priv_validator_state.json') and member.isreg():
+                continue
             if (count>1000000 or name.is_absolute() or '..' in name.parts
                 or not name.is_relative_to(root) or not (member.isdir() or member.isreg())):
                 raise ValueError('UNSAFE_SNAPSHOT_MEMBER')

@@ -52,6 +52,13 @@ class SnapshotTests(unittest.TestCase):
             snapshot.extract_tar(self.archive([('bor/chaindata/CURRENT',tarfile.REGTYPE)]),pathlib.Path(d),'bor/chaindata',100)
             self.assertEqual((pathlib.Path(d)/'bor/chaindata/CURRENT').read_bytes(),b'ok')
 
+    def test_provider_validator_state_is_ignored_not_imported(self):
+        with tempfile.TemporaryDirectory() as d:
+            snapshot.extract_tar(self.archive([('data/CURRENT',tarfile.REGTYPE),
+                ('priv_validator_state.json',tarfile.REGTYPE)]),pathlib.Path(d),'data',100)
+            self.assertTrue((pathlib.Path(d)/'data/CURRENT').exists())
+            self.assertFalse((pathlib.Path(d)/'priv_validator_state.json').exists())
+
     def test_paths_links_and_foreign_roots_rejected(self):
         for name,kind in [('../escape',tarfile.REGTYPE),('/absolute',tarfile.REGTYPE),
                           ('data/../../escape',tarfile.REGTYPE),('config/node_key.json',tarfile.REGTYPE),
