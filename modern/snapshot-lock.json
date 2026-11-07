@@ -1,6 +1,6 @@
 {
   "schema": "omega.community-snapshot-transport-lock.v1",
-  "observedAt": "2026-11-07T00:00:00Z",
+  "observedAt": "2026-11-07T03:45:00Z",
   "trust": "Community snapshot over TLS. ETags identify the observed object and are NOT publisher SHA256 signatures. Local SHA256 is recorded after download. Canonical state requires independent RPC corroboration.",
   "heimdall": {
     "component": "heimdall",
@@ -15,13 +15,13 @@
   "bor": {
     "component": "bor",
     "url": "https://snapshots.publicnode.com/polygon-bor-pruned-96866439.tar.lz4",
-    "etag": "\"a6a00c92954e40b4a4ded68c0cb13b9e-990\"",
-    "compressedBytes": 103806479154,
+    "etag": "\"7cefadef182a66f5ece21ca860bf7d99-975\"",
+    "compressedBytes": 102158223829,
     "maxUncompressedBytes": 120000000000,
     "height": 96866438,
     "prefix": "bor/chaindata",
     "engine": "pebble",
     "stateScheme": "path",
-    "note": "Height and bytes are from the observed object metadata; the provider's landing-page numbers differed. Any object identity change fails closed."
+    "note": "The pinned Bor URL returned a replacement object (HTTP 412 with previous ETag). The updated ETag, exact size, and Last-Modified 2026-11-06T23:00:00Z were observed from the host. Object identity is not a signed state proof; independent chain verification remains mandatory."
   }
 }
