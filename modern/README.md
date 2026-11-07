@@ -32,11 +32,21 @@ user, refuses paths/links/devices outside the allowed database root, and never
 imports identity keys. Existing databases cannot be overwritten by bootstrap.
 Snapshot data is unverified until independent live-chain checks pass.
 
-The selected Bor snapshot has approximately 104 GB compressed state. Its URL's
-height and landing-page size differ slightly from object metadata; the lock uses
-actual response metadata and refuses any different object. This is a pruned full
-node, **not an archive node or a complete historical event index**. Keep historical
-providers for Asset Hunter census backfills and unavailable old state.
+The compact Bor snapshot failed native acceptance on November 7: its ancient
+store was empty with no pruning offset, and a read-only audit found a retained
+header inconsistency. It is explicitly rejected for new bootstrap. The failed
+database is retained for diagnosis; no consensus or pruning metadata is patched.
+
+`full-snapshot-lock.json` pins the full base and incremental objects: approximately
+6.77 TB compressed and up to 7.45 TB extracted. `full_snapshot.py` streams eight
+bounded ranges into a protected staging directory, verifies complete LZ4 streams,
+records local SHA256 digests and promotes only a complete, nonconflicting dataset.
+Interrupted components restart from their beginning and verify previously written
+files byte-for-byte; completed components are retained. This is not arbitrary-byte
+resume of a compressed stream. Heimdall and monitoring stay active throughout.
+On the 8 TiB volume, the full restore crosses the 80% capacity alarm; growth must
+be measured before capacity certification. It does not establish archive-state
+capability or complete RPC indexing. Keep independent historical providers.
 
 ## Validation
 

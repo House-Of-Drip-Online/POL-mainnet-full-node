@@ -261,7 +261,7 @@ def install(settings):
         owner='bor' if path==bor_path else 'heimdall'
         run('chown',f'{owner}:nogroup',str(path))
     from snapshot import install as install_snapshot
-    for component in ('heimdall','bor'):
+    for component in ('heimdall',):
         print(json.dumps({'event':'BOOTSTRAP_SNAPSHOT','component':component}),flush=True)
         install_snapshot(component)
     ensure_heimdall_nonvalidator_identity()
@@ -278,6 +278,23 @@ def install(settings):
     run('systemctl','daemon-reload')
     run('systemctl','enable','heimdalld.service','omega-rpc.service','omega-monitor.timer')
     run('systemctl','start','heimdalld.service','omega-rpc.service','omega-monitor.timer')
+    # Restore full Bor history separately so Heimdall and truthful monitoring
+    # remain operational during the multi-terabyte transfer.
+    target=Path('/data/bor/data/bor/chaindata')
+    if not (target/'.omega-full-snapshot.json').exists():
+        rejected=json.loads((ROOT/'snapshot-lock.json').read_text())['bor']
+        old_marker=target/'.omega-snapshot.json'
+        if target.exists() and any(target.iterdir()) and (
+            not old_marker.exists() or json.loads(old_marker.read_text()).get('etag')!=rejected['etag']):
+            raise ValueError('UNRECOGNIZED_BOR_DATABASE_REQUIRES_REVIEW')
+        maintenance=Path('/etc/omega-polygon/maintenance.json')
+        if maintenance.exists() and json.loads(maintenance.read_text()).get('reason')!='BOR_FULL_RESTORE_PENDING':
+            raise ValueError('MAINTENANCE_OWNERSHIP_CONFLICT')
+        if not maintenance.exists():
+            atomic_text(maintenance,json.dumps({'reason':'BOR_FULL_RESTORE_PENDING',
+                'sourceCommit':settings['sourceCommit'],'startedAt':time.time()}))
+        run('systemctl','enable','omega-bor-full-restore.service')
+        run('systemctl','start','--no-block','omega-bor-full-restore.service')
     atomic_text('/data/bootstrap-complete.json',json.dumps({'sourceCommit':settings['sourceCommit'],
         'installedAt':time.time(),'state':'SYNCING','executionAuthorized':False},sort_keys=True))
 

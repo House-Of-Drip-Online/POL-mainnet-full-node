@@ -13,6 +13,12 @@ import urllib.request
 
 from rpc_gate import evaluate_rpc_gate, rpc_query, height
 
+MAINTENANCE_PATH = pathlib.Path('/etc/omega-polygon/maintenance.json')
+
+
+def bor_start_allowed(raw, *, maintenance_path=MAINTENANCE_PATH, now=None):
+    return not pathlib.Path(maintenance_path).exists() and heimdall_ready(raw, now=now)
+
 
 def heimdall_ready(raw, *, now=None):
     try:
@@ -34,8 +40,24 @@ def read_heimdall():
 def check(reference):
     result={'status':'FAIL','failures':[],'checkedAt':time.time(),'executionAuthorized':False}
     try:
-        if not heimdall_ready(read_heimdall()):
+        heimdall = read_heimdall()
+        sync = heimdall['result']['sync_info']
+        result['heimdall'] = {'height': int(sync['latest_block_height']),
+            'catchingUp': sync['catching_up'], 'blockTime': sync['latest_block_time'],
+            'blockHash': sync['latest_block_hash'], 'ready': heimdall_ready(heimdall)}
+        with urllib.request.urlopen('http://127.0.0.1:26657/net_info', timeout=4) as response:
+            result['heimdall']['peers'] = int(json.loads(response.read(1024*1024))['result']['n_peers'])
+        if not result['heimdall']['ready'] or result['heimdall']['peers'] < 1:
             result['failures'].append('HEIMDALL_NOT_READY')
+        if MAINTENANCE_PATH.exists():
+            result['failures'].append('NODE_MAINTENANCE')
+            try:
+                result['maintenance'] = json.loads(MAINTENANCE_PATH.read_text())
+                progress = pathlib.Path('/data/bor/full-restore/progress.json')
+                if progress.exists(): result['restore'] = json.loads(progress.read_text())
+            except (OSError, ValueError): result['failures'].append('MAINTENANCE_EVIDENCE_UNREADABLE')
+            result['checkedAt'] = time.time()
+            return result
         gate=evaluate_rpc_gate('http://127.0.0.1:18545',reference,timeout_seconds=4)
         result.update({k:v for k,v in gate.items() if k not in ('failures','status')})
         result['failures']+=gate['failures']
@@ -86,15 +108,19 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument('--settings',default='/etc/omega-polygon/settings.json')
     p.add_argument('--heimdall-only',action='store_true')
+    p.add_argument('--bor-start-allowed',action='store_true')
     args=p.parse_args()
     if args.heimdall_only:
         try:return 0 if heimdall_ready(read_heimdall()) else 1
+        except Exception:return 1
+    if args.bor_start_allowed:
+        try:return 0 if bor_start_allowed(read_heimdall()) else 1
         except Exception:return 1
     settings=json.loads(pathlib.Path(args.settings).read_text())
     # A one-shot timer retries while Heimdall is catching up. Bor starts only
     # after this check passes; its systemd precondition repeats at every restart.
     try:
-        if heimdall_ready(read_heimdall()):
+        if bor_start_allowed(read_heimdall()):
             subprocess.run(['systemctl','start','--no-block','bor.service'],check=True)
     except Exception:pass
     result=check(settings['referenceUrl'])

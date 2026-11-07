@@ -186,6 +186,10 @@ def extract(archive,stage,prefix,max_bytes):
 
 def install(component):
     spec=json.loads((ROOT/'snapshot-lock.json').read_text())[component]
+    if spec.get('admission') == 'REJECTED_NATIVE_VALIDATION':
+        if component == 'bor' and Path('/data/bor/data/bor/chaindata/.omega-full-snapshot.json').exists():
+            return
+        raise ValueError('BOR_REQUIRES_PINNED_FULL_RESTORE')
     base=Path('/data')/component
     target=base/'data' if component=='heimdall' else base/'data/bor/chaindata'
     marker=target/'.omega-snapshot.json'

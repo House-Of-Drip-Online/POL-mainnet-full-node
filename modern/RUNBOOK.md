@@ -73,6 +73,33 @@ Interrupted downloads resume. Existing chain databases are never overwritten.
 
 ## Observe
 
+The November 7 compact Bor snapshot is rejected for native full-node use.
+`omega-bor-full-restore.service` restores the pinned base plus increment under
+`/data/bor/full-restore/`. During restoration, maintenance prevents Bor starts,
+but the monitor continues publishing Heimdall head/peer status and transfer
+progress. Inspect `progress.json` and the restore journal; bytes received are
+not synchronized blocks. Each component has a transport SHA256 completion record.
+Completed components survive retries. An interrupted compressed component must
+be replayed from its beginning; completed extracted members are compared bytewise.
+Conflicting base/increment files stop promotion rather than overwrite each other.
+
+Promotion renames the rejected database to `chaindata.rejected-<timestamp>` and
+moves the complete new database into place. Only the restore's own maintenance
+reason is cleared. Bor then starts under the existing Heimdall gate, and the RPC
+gateway stays closed until native synchronization and independent checks pass.
+No pruning offsets, consensus roots or validation rules are changed.
+
+The read-only `modern/tools/bor-db-audit/main.go` can be built inside official Bor
+commit `3a018e38467594508ca31ebeaf804837fb92834a` with Go 1.26.10. It opens Pebble
+read-only and reports state/root metadata and retained-header continuity. Stop
+Bor before auditing. The tool is diagnostic evidence, not a full state verifier.
+
+```sh
+systemctl status omega-bor-full-restore
+journalctl -u omega-bor-full-restore --since '-10 min' --no-pager
+cat /data/bor/full-restore/progress.json
+```
+
 Use SSM Session Manager; do not open SSH.
 
 ```sh

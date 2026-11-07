@@ -166,6 +166,16 @@ class MonitorTests(unittest.TestCase):
             raw['result']['sync_info']['catching_up']=value
             self.assertFalse(self.mod.heimdall_ready(raw,now=1793923201))
 
+    def test_maintenance_prevents_bor_start_even_when_heimdall_is_ready(self):
+        raw={'result':{'node_info':{'network':'heimdallv2-137'},'sync_info':{
+            'catching_up':False,'latest_block_height':'57006001',
+            'latest_block_time':'2026-11-06T00:00:00Z'}}}
+        with tempfile.TemporaryDirectory() as directory:
+            maintenance = pathlib.Path(directory)/'maintenance.json'
+            self.assertTrue(self.mod.bor_start_allowed(raw, maintenance_path=maintenance, now=1793923201))
+            maintenance.write_text('{malformed')
+            self.assertFalse(self.mod.bor_start_allowed(raw, maintenance_path=maintenance, now=1793923201))
+
 
 if __name__=='__main__':
     unittest.main()

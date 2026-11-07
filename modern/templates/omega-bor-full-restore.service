@@ -1,0 +1,24 @@
+[Unit]
+Description=OMEGA pinned Bor full-history restoration
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/data /var/lib/bor
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/omega-polygon/modern/full_snapshot.py
+TimeoutStartSec=infinity
+TimeoutStopSec=150
+KillMode=control-group
+UMask=0077
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/data/bor /etc/omega-polygon
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

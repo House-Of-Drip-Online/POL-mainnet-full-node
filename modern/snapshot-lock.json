@@ -13,6 +13,8 @@
     "engine": "goleveldb"
   },
   "bor": {
+    "admission": "REJECTED_NATIVE_VALIDATION",
+    "rejectionEvidence": "2026-11-07: native Bor v2.11.0 refuses empty ancient store with offset=0. Read-only rawdb audit found canonical header inconsistency at block 96639058. Preserve snapshot for diagnosis; use full-snapshot-lock.json and full_snapshot.py.",
     "component": "bor",
     "url": "https://snapshots.publicnode.com/polygon-bor-pruned-96866439.tar.lz4",
     "etag": "\"7cefadef182a66f5ece21ca860bf7d99-975\"",
