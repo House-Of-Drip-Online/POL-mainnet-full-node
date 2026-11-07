@@ -33,6 +33,15 @@ existing engines. That attachment is a separate acceptance-driven integration.
 
 ## Snapshot bootstrap
 
+Heimdall seed servers supply peer addresses and disconnect. Do not duplicate
+their IDs in `persistent_peers`; persistent connections are for full peers.
+The bootstrap removes only seed/persistent overlaps, preserving distinct
+configured full peers. Peer exchange stays enabled, and its address book is
+stored at `/data/heimdall/data/addrbook.json`, writable by the Heimdall service.
+The packaged configuration directory can remain root-owned. After a peer
+configuration change, restart Heimdall and verify both peer count and advancing
+block height; a successful TCP connection alone is insufficient.
+
 The first installation downloads recent PublicNode pruned databases with fixed
 object size and ETag, records local SHA256 digests, and extracts only database
 files as the unprivileged client user. ETag is transport identity, not a signed

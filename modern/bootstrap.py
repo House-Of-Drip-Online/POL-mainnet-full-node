@@ -48,7 +48,17 @@ def configure_bor(config):
 
 def configure_heimdall(config,app):
     config['moniker']='omega-polygon-137'
-    config.setdefault('p2p',{})['external_address']=''
+    p2p=config.setdefault('p2p',{})
+    # Seeds return addresses and disconnect by design. Treating those same
+    # servers as persistent full peers creates an immediate reconnect loop.
+    seeds={entry.strip().split('@',1)[0] for entry in p2p.get('seeds','').split(',') if entry.strip()}
+    p2p['persistent_peers']=','.join(entry.strip() for entry in
+        p2p.get('persistent_peers','').split(',')
+        if entry.strip() and entry.strip().split('@',1)[0] not in seeds)
+    p2p.update({'external_address':'','pex':True,'seed_mode':False,
+        # Package configuration is root-owned; peer discovery must persist in
+        # the service-owned data directory instead of the config directory.
+        'addr_book_file':'data/addrbook.json'})
     config.setdefault('rpc',{}).update({'laddr':'tcp://127.0.0.1:26657','unsafe':False})
     config['pprof_laddr']=''
     config.setdefault('instrumentation',{}).update({'prometheus':True,'prometheus_listen_addr':'127.0.0.1:26660'})

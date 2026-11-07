@@ -98,6 +98,22 @@ class BootstrapSafetyTests(unittest.TestCase):
             {'api':{},'grpc':{},'custom':{'bor_rpc_url':'http://localhost:8545'}})
         self.assertEqual(app['custom']['bor_rpc_url'],'http://127.0.0.1:18545')
 
+    def test_seed_servers_are_not_reconnected_as_persistent_full_peers(self):
+        cfg = {'p2p': {'seeds': 'seed-a@192.0.2.1:26656, seed-b@192.0.2.2:26656',
+                       'persistent_peers': 'seed-a@192.0.2.1:26656, full@192.0.2.3:26656,seed-b@192.0.2.2:26656',
+                       'seed_mode': True, 'pex': False}}
+        cfg, _ = self.mod.configure_heimdall(cfg, {})
+        self.assertEqual(cfg['p2p']['persistent_peers'], 'full@192.0.2.3:26656')
+        self.assertTrue(cfg['p2p']['pex'])
+        self.assertFalse(cfg['p2p']['seed_mode'])
+        again, _ = self.mod.configure_heimdall(cfg, {})
+        self.assertEqual(again['p2p']['persistent_peers'], 'full@192.0.2.3:26656')
+
+    def test_peer_address_book_lives_in_writable_runtime_data(self):
+        cfg, _ = self.mod.configure_heimdall(
+            {'p2p': {'addr_book_file': 'config/addrbook.json'}}, {})
+        self.assertEqual(cfg['p2p']['addr_book_file'], 'data/addrbook.json')
+
     def test_hash_mismatch_never_replaces_destination(self):
         with tempfile.TemporaryDirectory() as d:
             path=pathlib.Path(d)/'file'
