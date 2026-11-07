@@ -1,0 +1,8 @@
+{
+  "schema": "omega.polygon137.heimdall-genesis.v1",
+  "chainId": "heimdallv2-137",
+  "url": "https://storage.googleapis.com/mainnet-heimdallv2-genesis/migrated_dump-genesis.json?generation=1752157618295837",
+  "sha256": "843e785e340a408d952b7aa0d92435c94643536f426ab7c3ee188bfdc68b8699",
+  "size": 2358946007,
+  "provenance": "Official Polygon full-node binary installation guide; downloaded and SHA256 verified 2026-11-06. GCS generation is pinned."
+}

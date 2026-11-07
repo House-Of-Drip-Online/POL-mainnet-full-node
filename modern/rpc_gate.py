@@ -66,6 +66,8 @@ def evaluate_rpc_gate(local_url:str, reference_url:str,*,
         if failures:return out
         sync=query(local_url,'eth_syncing',[],timeout_seconds)
         if sync is not False: failures.append('LOCAL_SYNC_INCOMPLETE')
+        if query(reference_url,'eth_syncing',[],timeout_seconds) is not False:
+            failures.append('REFERENCE_SYNC_INCOMPLETE')
         raw_local=query(local_url,'eth_getBlockByNumber',['latest',False],timeout_seconds)
         raw_ref=query(reference_url,'eth_getBlockByNumber',['latest',False],timeout_seconds)
         try:local=read_head(raw_local)
@@ -79,6 +81,8 @@ def evaluate_rpc_gate(local_url:str, reference_url:str,*,
         lag=max(0,ref['height']-local['height'])
         out['lagBlocks']=lag
         if lag>max_lag_blocks:failures.append('NODE_LAG_LIMIT_EXCEEDED')
+        if local['height']-ref['height']>max_lag_blocks:
+            failures.append('REFERENCE_LAG_LIMIT_EXCEEDED')
         pin=min(local['height'],ref['height'])
         out['canonicalComparisonBlock']=pin
         local_pin=read_head(query(local_url,'eth_getBlockByNumber',[hex(pin),False],timeout_seconds))

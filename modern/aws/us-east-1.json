@@ -1,0 +1,10 @@
+{
+  "AccountId": "919989872157",
+  "Region": "us-east-1",
+  "VpcId": "vpc-0bbd0689b00422397",
+  "SubnetId": "subnet-04358d40019721640",
+  "AvailabilityZone": "us-east-1a",
+  "ImageId": "ami-0d6dd9e8265d48906",
+  "observedAt": "2026-11-06",
+  "purpose": "Standalone node stack in existing APEX network; no consumer admission or execution authority inherited"
+}

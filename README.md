@@ -1,3 +1,19 @@
+# OMEGA Polygon 137 full node
+
+The supported deployment is in [`modern/`](modern/README.md): Bor 2.11.0,
+Heimdall-v2 0.13.2, Ubuntu 24.04, AWS EC2, encrypted retained EBS, private
+read-only HTTP/WebSocket RPC, and SSM administration.
+
+Start with the [operation runbook](modern/RUNBOOK.md),
+[target and acceptance criteria](modern/TARGET.md), and
+[AWS template](modern/aws/node.yaml). Source checks do not establish live
+synchronization. Runtime readiness remains closed until canonical-state checks pass.
+
+**Do not deploy the historical Docker, Ansible, Vagrant or snapshot files below.**
+They contain obsolete 2021 clients and configuration. They remain only as source history.
+
+<details><summary>Historical README — unsupported</summary>
+
 # Deploy matic-mainnet-full-node
 
 Push button deployment of Matic/Polygon mainnet full node
@@ -81,3 +97,5 @@ This repository remains an independent project/build boundary. Shared trust and 
 ## Source authority matrix
 
 Source ownership, active versus archival loci, external authority boundaries, and known divergences are documented in [`docs/SOURCE_AUTHORITY_MATRIX.md`](docs/SOURCE_AUTHORITY_MATRIX.md), governed portfolio-wide by `House-Of-Drip-Online/-MAEVN-HOLDINGS/topology/APEX_SOURCE_AUTHORITY_MATRIX.md` (APEX-SOURCE-001). File presence alone does not establish runtime, deployment, registry, execution, or certification authority.
+
+</details>

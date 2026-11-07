@@ -1,0 +1,27 @@
+[Unit]
+Description=OMEGA Polygon Heimdall v2 full node
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/data /var/lib/heimdall
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=heimdall
+Group=nogroup
+ExecStart=/usr/bin/heimdalld start --home /var/lib/heimdall --chain=mainnet --rest-server
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=300
+KillSignal=SIGINT
+LimitNOFILE=1048576
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/data/heimdall /var/lib/heimdall
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

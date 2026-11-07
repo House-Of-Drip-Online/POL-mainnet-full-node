@@ -1,0 +1,281 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: OMEGA Polygon 137 Bor and Heimdall full node, private read RPC and SSM administration
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public subnet with IGW; only P2P is internet reachable. Avoid multi-terabyte NAT charges.
+  AvailabilityZone:
+    Type: AWS::EC2::AvailabilityZone::Name
+  ImageId:
+    Type: AWS::EC2::Image::Id
+    Description: Verified Canonical Ubuntu 24.04 amd64 image
+  SourceCommit:
+    Type: String
+    AllowedPattern: '[0-9a-f]{40}'
+    Description: Immutable commit from House-Of-Drip-Online/POL-mainnet-full-node
+  SourceArchiveSha256:
+    Type: String
+    AllowedPattern: '[0-9a-f]{64}'
+  InstanceType:
+    Type: String
+    Default: m7i.4xlarge
+    AllowedValues: [m7i.4xlarge, m7i.8xlarge]
+  DataGiB:
+    Type: Number
+    Default: 8192
+    MinValue: 8192
+    MaxValue: 16384
+  ReferenceUrl:
+    Type: String
+    Default: https://polygon-bor-rpc.publicnode.com
+    AllowedPattern: 'https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9_./~-]*)?'
+    Description: Independent public reference URL without credentials
+Resources:
+  ClientSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Explicitly attach to certified same-VPC consumers after acceptance
+      VpcId: !Ref VpcId
+      Tags:
+        - {Key: System, Value: OMEGA-Polygon-Node}
+  NodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Polygon P2P public; RPC restricted to client security group; no SSH
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 30303, ToPort: 30303, CidrIp: 0.0.0.0/0}
+        - {IpProtocol: udp, FromPort: 30303, ToPort: 30303, CidrIp: 0.0.0.0/0}
+        - {IpProtocol: tcp, FromPort: 26656, ToPort: 26656, CidrIp: 0.0.0.0/0}
+        - IpProtocol: tcp
+          FromPort: 8545
+          ToPort: 8545
+          SourceSecurityGroupId: !Ref ClientSecurityGroup
+      Tags:
+        - {Key: System, Value: OMEGA-Polygon-Node}
+  Logs:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub /omega/polygon-node/${AWS::StackName}
+      RetentionInDays: 30
+  NodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ec2.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: node-observability
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !GetAtt Logs.Arn
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals: {cloudwatch:namespace: OMEGA/PolygonNode}
+      Tags:
+        - {Key: System, Value: OMEGA-Polygon-Node}
+  Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref NodeRole]
+  DataVolume:
+    Type: AWS::EC2::Volume
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      Encrypted: true
+      Size: !Ref DataGiB
+      VolumeType: gp3
+      Iops: 16000
+      Throughput: 1000
+      Tags:
+        - {Key: Name, Value: omega-polygon-137-data}
+        - {Key: System, Value: OMEGA-Polygon-Node}
+        - {Key: Backup, Value: daily}
+        - {Key: NodeStack, Value: !Ref 'AWS::StackName'}
+  Node:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref Profile
+      DisableApiTermination: true
+      EbsOptimized: true
+      Monitoring: true
+      MetadataOptions:
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+        HttpEndpoint: enabled
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref SubnetId
+          GroupSet: [!Ref NodeSecurityGroup]
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs: {Encrypted: true, VolumeSize: 64, VolumeType: gp3, DeleteOnTermination: true}
+      Tags:
+        - {Key: Name, Value: omega-polygon-137}
+        - {Key: System, Value: OMEGA-Polygon-Node}
+        - {Key: SourceCommit, Value: !Ref SourceCommit}
+      UserData:
+        Fn::Base64:
+          Fn::Sub: |
+            #!/bin/bash
+            set -euo pipefail
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y --no-install-recommends ca-certificates curl xfsprogs lz4 python3 python3-aiohttp python3-tomlkit python3-boto3 sudo
+            id omega-rpc >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin --gid nogroup omega-rpc
+            install -d -m 0755 /opt/omega-polygon /etc/omega-polygon /run/omega-polygon
+            curl --fail --location --retry 5 --proto '=https' --tlsv1.2 'https://codeload.github.com/House-Of-Drip-Online/POL-mainnet-full-node/tar.gz/${SourceCommit}' -o /tmp/omega-source.tar.gz
+            echo '${SourceArchiveSha256}  /tmp/omega-source.tar.gz' | sha256sum -c -
+            tar --extract --gzip --file /tmp/omega-source.tar.gz --directory /opt/omega-polygon --strip-components=1 --no-same-owner
+            TOKEN=$(curl -fsS -X PUT -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' http://169.254.169.254/latest/api/token)
+            PRIVATE_IP=$(curl -fsS -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)
+            python3 - "$PRIVATE_IP" <<'PY'
+            import json,pathlib,sys
+            settings={'region':'${AWS::Region}','nodeName':'${AWS::StackName}','logGroup':'${Logs}',
+                      'volumeId':'${DataVolume}','privateIp':sys.argv[1],'sourceCommit':'${SourceCommit}',
+                      'referenceUrl':'${ReferenceUrl}'}
+            pathlib.Path('/etc/omega-polygon/settings.json').write_text(json.dumps(settings))
+            PY
+            cat >/etc/systemd/system/omega-bootstrap.service <<'UNIT'
+            [Unit]
+            Description=OMEGA Polygon verified bootstrap
+            After=network-online.target
+            Wants=network-online.target
+            StartLimitIntervalSec=0
+            [Service]
+            Type=oneshot
+            ExecStart=/usr/bin/python3 /opt/omega-polygon/modern/bootstrap.py
+            TimeoutStartSec=21600
+            Restart=on-failure
+            RestartSec=60
+            RemainAfterExit=yes
+            [Install]
+            WantedBy=multi-user.target
+            UNIT
+            install -d -m 0755 /etc/systemd/journald.conf.d
+            printf '[Journal]\nStorage=persistent\nSystemMaxUse=2G\n' >/etc/systemd/journald.conf.d/omega.conf
+            systemctl restart systemd-journald
+            systemctl daemon-reload
+            systemctl enable --now omega-bootstrap.service
+  DataAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/sdf
+      InstanceId: !Ref Node
+      VolumeId: !Ref DataVolume
+  SnapshotRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: dlm.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: node-data-snapshots
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [ec2:DescribeVolumes, ec2:DescribeSnapshots]
+                Resource: '*'
+              - Effect: Allow
+                Action: ec2:CreateSnapshot
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/${DataVolume}
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}::snapshot/*
+              - Effect: Allow
+                Action: ec2:CreateTags
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}::snapshot/*
+              - Effect: Allow
+                Action: ec2:DeleteSnapshot
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}::snapshot/*
+                Condition:
+                  StringEquals:
+                    ec2:ResourceTag/NodeStack: !Ref 'AWS::StackName'
+  SnapshotSchedule:
+    Type: AWS::DLM::LifecyclePolicy
+    Properties:
+      Description: Daily Polygon state snapshots retaining two recovery points
+      ExecutionRoleArn: !GetAtt SnapshotRole.Arn
+      State: ENABLED
+      PolicyDetails:
+        PolicyType: EBS_SNAPSHOT_MANAGEMENT
+        ResourceTypes: [VOLUME]
+        TargetTags: [{Key: NodeStack, Value: !Ref 'AWS::StackName'}]
+        Schedules:
+          - Name: daily
+            CopyTags: true
+            CreateRule: {Interval: 24, IntervalUnit: HOURS, Times: ['08:00']}
+            RetainRule: {Count: 2}
+  RecoveryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Recover the same EC2 host after an underlying system failure
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed_System
+      Dimensions: [{Name: InstanceId, Value: !Ref Node}]
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      AlarmActions: [!Sub 'arn:${AWS::Partition}:automate:${AWS::Region}:ec2:recover']
+  ReadinessAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Node not ready or monitoring absent; expected during initial synchronization
+      Namespace: OMEGA/PolygonNode
+      MetricName: Ready
+      Dimensions: [{Name: Node, Value: !Ref 'AWS::StackName'}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+  DiskAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Expand retained data volume before disk exhaustion
+      Namespace: OMEGA/PolygonNode
+      MetricName: DiskUsedPercent
+      Dimensions: [{Name: Node, Value: !Ref 'AWS::StackName'}]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: breaching
+Outputs:
+  InstanceId: {Value: !Ref Node}
+  DataVolumeId: {Value: !Ref DataVolume}
+  PrivateRpc: {Value: !Sub 'http://${Node.PrivateIp}:8545'}
+  PrivateWebSocket: {Value: !Sub 'ws://${Node.PrivateIp}:8545'}
+  ClientSecurityGroup: {Value: !Ref ClientSecurityGroup}
+  LogGroup: {Value: !Ref Logs}
+  Readiness: {Value: SYNCING_UNTIL_RUNTIME_GATES_PASS}

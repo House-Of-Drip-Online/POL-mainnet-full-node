@@ -1,0 +1,23 @@
+[Unit]
+Description=OMEGA private read-only Polygon RPC
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=omega-rpc
+Group=nogroup
+ExecStart=/usr/bin/python3 /opt/omega-polygon/modern/rpc_proxy.py --bind @PRIVATE_IP@
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/run/omega-polygon
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

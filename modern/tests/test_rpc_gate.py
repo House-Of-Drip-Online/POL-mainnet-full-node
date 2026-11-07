@@ -48,6 +48,19 @@ class RpcGateTests(unittest.TestCase):
         result=self.gate(local_height=90,ref_height=100)
         self.assertIn('NODE_LAG_LIMIT_EXCEEDED',result['failures'])
 
+    def test_reference_far_behind_is_not_corroboration(self):
+        result=self.gate(local_height=100,ref_height=90)
+        self.assertEqual(result['status'],'FAIL')
+        self.assertIn('REFERENCE_LAG_LIMIT_EXCEEDED',result['failures'])
+
+    def test_syncing_reference_is_not_corroboration(self):
+        q=self.evidence()
+        def query(endpoint,method,params,timeout):
+            if method=='eth_syncing' and endpoint.startswith('https:'):
+                return {'currentBlock':'0x10'}
+            return q(endpoint,method,params,timeout)
+        self.assertIn('REFERENCE_SYNC_INCOMPLETE',self.gate(query=query)['failures'])
+
     def test_cross_provider_hash_mismatch_rejected(self):
         result=self.gate(hash_match=False)
         self.assertIn('PINNED_HASH_DISAGREEMENT',result['failures'])

@@ -1,0 +1,28 @@
+[Unit]
+Description=OMEGA Polygon Bor full node
+After=network-online.target heimdalld.service
+Wants=network-online.target heimdalld.service
+RequiresMountsFor=/data /var/lib/bor
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=bor
+Group=nogroup
+ExecStartPre=/usr/bin/python3 /opt/omega-polygon/modern/monitor.py --heimdall-only
+ExecStart=/usr/bin/bor server -config /var/lib/bor/config.toml
+Restart=on-failure
+RestartSec=60
+TimeoutStopSec=600
+KillSignal=SIGINT
+LimitNOFILE=1048576
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/data/bor /var/lib/bor
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

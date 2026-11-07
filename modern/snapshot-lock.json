@@ -1,0 +1,27 @@
+{
+  "schema": "omega.community-snapshot-transport-lock.v1",
+  "observedAt": "2026-11-07T00:00:00Z",
+  "trust": "Community snapshot over TLS. ETags identify the observed object and are NOT publisher SHA256 signatures. Local SHA256 is recorded after download. Canonical state requires independent RPC corroboration.",
+  "heimdall": {
+    "component": "heimdall",
+    "url": "https://snapshots.publicnode.com/polygon-heimdall-pruned-57280338-57280348.tar.lz4",
+    "etag": "\"24c90dc172b413e66f38e6c77a518c12-72\"",
+    "compressedBytes": 7485858694,
+    "maxUncompressedBytes": 11000000000,
+    "height": 57280348,
+    "prefix": "data",
+    "engine": "goleveldb"
+  },
+  "bor": {
+    "component": "bor",
+    "url": "https://snapshots.publicnode.com/polygon-bor-pruned-96866439.tar.lz4",
+    "etag": "\"a6a00c92954e40b4a4ded68c0cb13b9e-990\"",
+    "compressedBytes": 103806479154,
+    "maxUncompressedBytes": 120000000000,
+    "height": 96866438,
+    "prefix": "bor/chaindata",
+    "engine": "pebble",
+    "stateScheme": "path",
+    "note": "Height and bytes are from the observed object metadata; the provider's landing-page numbers differed. Any object identity change fails closed."
+  }
+}
