@@ -4,6 +4,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import ipaddress
+import grp
+import pwd
+import tempfile
 import json
 import os
 from pathlib import Path
@@ -131,6 +134,71 @@ def atomic_text(path,text,mode=0o644):
     temporary.write_text(text);temporary.chmod(mode);temporary.replace(path)
 
 
+def heimdall_identity_state(home=Path('/var/lib/heimdall')):
+    """No identity can be recreated after a partial or persisted signing state."""
+    home = Path(home)
+    paths = [
+        home / 'config/priv_validator_key.json',
+        home / 'config/node_key.json',
+        home / 'data/priv_validator_state.json',
+    ]
+    present = [p.is_file() and p.stat().st_size > 0 for p in paths]
+    if all(present):
+        return 'READY'
+    if any(p.exists() for p in paths):
+        raise ValueError('HEIMDALL_PARTIAL_IDENTITY_REFUSE_REPLACEMENT')
+    return 'MISSING'
+
+
+def ensure_heimdall_nonvalidator_identity(home=Path('/var/lib/heimdall')):
+    """Install missing node identity in isolation, without changing chain data.
+
+    This is a non-validator full node; no existing key or signing state may be
+    replaced. Heimdall init runs in a separate temporary home, never against
+    the existing mainnet database or locked genesis.
+    """
+    home = Path(home)
+    if heimdall_identity_state(home) == 'READY':
+        return
+    owner = pwd.getpwnam('heimdall').pw_uid
+    group = grp.getgrnam('nogroup').gr_gid
+    staging = Path(tempfile.mkdtemp(prefix='.omega-heimdall-init-', dir=str(home)))
+    try:
+        os.chown(staging, owner, group)
+        staging.chmod(0o700)
+        run('runuser', '-u', 'heimdall', '--', 'heimdalld', 'init',
+            'omega-polygon-137', '--chain-id', 'heimdallv2-137',
+            '--home', str(staging))
+        artifacts = [
+            ('config/priv_validator_key.json', 'config/priv_validator_key.json'),
+            ('config/node_key.json', 'config/node_key.json'),
+            ('data/priv_validator_state.json', 'data/priv_validator_state.json'),
+        ]
+        for source, _ in artifacts:
+            value = staging / source
+            if not value.is_file() or not value.stat().st_size:
+                raise ValueError('HEIMDALL_INIT_IDENTITY_ARTIFACT_MISSING')
+            if not isinstance(json.loads(value.read_text()), dict):
+                raise ValueError('HEIMDALL_INIT_IDENTITY_ARTIFACT_INVALID')
+        if heimdall_identity_state(home) != 'MISSING':
+            raise ValueError('HEIMDALL_IDENTITY_RACE_REFUSE_REPLACEMENT')
+        for source, destination in artifacts:
+            target = home / destination
+            target.parent.mkdir(parents=True, exist_ok=True)
+            data = (staging / source).read_bytes()
+            fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, 'wb') as output:
+                output.write(data)
+                output.flush()
+                os.fsync(output.fileno())
+            os.chown(target, owner, group)
+            target.chmod(0o600)
+        if heimdall_identity_state(home) != 'READY':
+            raise ValueError('HEIMDALL_IDENTITY_INSTALL_INCOMPLETE')
+    finally:
+        shutil.rmtree(staging)
+
+
 def install(settings):
     import tomlkit
     if os.geteuid()!=0:raise ValueError('HOST_ROOT_REQUIRED')
@@ -186,6 +254,7 @@ def install(settings):
     for component in ('heimdall','bor'):
         print(json.dumps({'event':'BOOTSTRAP_SNAPSHOT','component':component}),flush=True)
         install_snapshot(component)
+    ensure_heimdall_nonvalidator_identity()
     ip=ipaddress.ip_address(settings['privateIp'])
     if not ip.is_private or ip.is_unspecified:raise ValueError('PRIVATE_RPC_BIND_REQUIRED')
     for source in (ROOT/'templates').glob('*.service'):
