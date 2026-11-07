@@ -23,7 +23,8 @@ class RpcFailure(ValueError):
 
 
 def rpc_query(url: str, method: str, params: list[Any], timeout: float) -> Any:
-    request = urllib.request.Request(url, method='POST', headers={'content-type':'application/json'},
+    request = urllib.request.Request(url, method='POST', headers={
+        'content-type':'application/json','user-agent':'OMEGA-PolygonNode/1.0'},
         data=json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode())
     with urllib.request.urlopen(request, timeout=timeout) as response:
         data=json.loads(response.read(1024*1024))

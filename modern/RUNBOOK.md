@@ -42,6 +42,27 @@ The packaged configuration directory can remain root-owned. After a peer
 configuration change, restart Heimdall and verify both peer count and advancing
 block height; a successful TCP connection alone is insufficient.
 
+An unsynchronized Heimdall is a skipped Bor start condition, not a Bor crash.
+The monitor retries admission; the database process must not enter a restart
+loop merely because its upstream state is stale. `catching_up=false` alone is
+insufficient: the head must also be recent and belong to `heimdallv2-137`.
+
+Independent HTTP checks identify themselves as `OMEGA-PolygonNode/1.0`.
+PublicNode was observed to return HTTP 403 for Python's default client identity;
+the explicit operator identity returned valid RPC responses. Failed reference
+reads still close the gate; changing headers never substitutes for chain, head,
+freshness, and pinned-hash verification.
+
+For an application-hash mismatch, retain the failed height and expected/received
+hashes. Stop Heimdall and Bor, take a complete consistent database backup, then
+use the installed upstream `heimdalld rollback --home /var/lib/heimdall
+--chain=mainnet` only after reviewing the failed transition. This replays one
+block and is not an automatic health repair. Preserve the node's existing keys
+and validator state. Verify progress past the failed height and canonical head
+agreement before restoring consumer admission. If replay does not fix the hash,
+keep the endpoint closed and investigate or restore verified state; never edit
+an expected hash or disable consensus validation.
+
 The first installation downloads recent PublicNode pruned databases with fixed
 object size and ETag, records local SHA256 digests, and extracts only database
 files as the unprivileged client user. ETag is transport identity, not a signed
