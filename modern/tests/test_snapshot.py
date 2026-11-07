@@ -4,12 +4,37 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]))
 import snapshot
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_parallel_ranges_reassemble_exact_bytes_and_reject_changed_object(self):
+        payload=bytes(range(251))*13
+        spec={'component':'bor','url':'https://snapshot.invalid/state','etag':'"fixed"',
+              'compressedBytes':len(payload)}
+        calls=[]
+        def response(request,timeout):
+            start,end=map(int,request.get_header('Range')[6:].split('-'))
+            calls.append((start,end))
+            stream=io.BytesIO(payload[start:end+1])
+            stream.status=206;stream.url=spec['url']
+            stream.headers={'ETag':'"fixed"','Content-Range':f'bytes {start}-{end}/{len(payload)}',
+                            'Content-Length':str(end-start+1)}
+            return stream
+        with tempfile.TemporaryDirectory() as d,patch.object(snapshot.urllib.request,'urlopen',response):
+            path=pathlib.Path(d)/'state.part'
+            snapshot.parallel_download(spec,path,chunk_bytes=256,workers=3)
+            self.assertEqual(path.read_bytes(),payload)
+            self.assertEqual(len(calls),13)
+            # Completed immutable chunks are reused after interruption.
+            calls.clear();snapshot.parallel_download(spec,path,chunk_bytes=256,workers=3)
+            self.assertEqual(calls,[])
+        spec['etag']='"changed"'
+        with tempfile.TemporaryDirectory() as d,patch.object(snapshot.urllib.request,'urlopen',response),self.assertRaises(ValueError):
+            snapshot.parallel_download(spec,pathlib.Path(d)/'state.part',chunk_bytes=256,workers=3)
     def archive(self, entries):
         stream=io.BytesIO()
         with tarfile.open(fileobj=stream,mode='w') as archive:

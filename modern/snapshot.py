@@ -16,6 +16,7 @@ import subprocess
 import tarfile
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ROOT=Path(__file__).resolve().parent
 
@@ -37,6 +38,66 @@ def validate_headers(headers,status,offset,spec):
         raise ValueError('SNAPSHOT_SIZE_MISMATCH')
 
 
+def parallel_download(spec,path,*,chunk_bytes=64*1024*1024,workers=8):
+    """Bounded range transfer; every range proves the same pinned object identity."""
+    if not 1<=workers<=8 or chunk_bytes<1:raise ValueError('INVALID_DOWNLOAD_CONCURRENCY')
+    path=Path(path);parts=path.with_suffix('.chunks');parts.mkdir(exist_ok=True)
+    identity=json.dumps({'url':spec['url'],'etag':spec['etag'],
+                         'bytes':spec['compressedBytes'],'chunkBytes':chunk_bytes},sort_keys=True)
+    manifest=parts/'source.json'
+    if manifest.exists() and manifest.read_text()!=identity:raise ValueError('SNAPSHOT_CHUNK_SOURCE_CHANGED')
+    manifest.write_text(identity)
+    ranges=[(start,min(start+chunk_bytes,spec['compressedBytes'])-1)
+            for start in range(0,spec['compressedBytes'],chunk_bytes)]
+    def part(item):
+        start,end=item;size=end-start+1;target=parts/f'{start}-{end}'
+        if target.exists() and target.stat().st_size==size:return size
+        for attempt in range(3):
+            try:
+                req=urllib.request.Request(spec['url'],headers={'User-Agent':'Mozilla/5.0',
+                    'If-Match':spec['etag'],'Range':f'bytes={start}-{end}'})
+                with urllib.request.urlopen(req,timeout=120) as response:
+                    if not response.url.startswith('https://'):raise ValueError('SNAPSHOT_HTTPS_REQUIRED')
+                    if (response.status!=206 or response.headers.get('ETag')!=spec['etag']
+                        or response.headers.get('Content-Range')!=f'bytes {start}-{end}/{spec["compressedBytes"]}'
+                        or int(response.headers.get('Content-Length','-1'))!=size):
+                        raise ValueError('SNAPSHOT_RANGE_IDENTITY_MISMATCH')
+                    temporary=target.with_suffix('.tmp');written=0
+                    with temporary.open('wb') as output:
+                        while block:=response.read(min(8*1024*1024,size-written+1)):
+                            written+=len(block)
+                            if written>size:raise ValueError('SNAPSHOT_RANGE_OVERSIZED')
+                            output.write(block)
+                        output.flush();os.fsync(output.fileno())
+                    if written!=size:raise OSError('SNAPSHOT_RANGE_INCOMPLETE')
+                    temporary.replace(target)
+                    return size
+            except ValueError:raise
+            except OSError:
+                if attempt==2:raise
+                time.sleep(2**attempt)
+    total=0;last=time.monotonic()
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures=[pool.submit(part,item) for item in ranges]
+        try:
+            for future in as_completed(futures):
+                total+=future.result()
+                if time.monotonic()-last>=30:
+                    print(json.dumps({'event':'SNAPSHOT_PARALLEL_DOWNLOAD','component':spec['component'],
+                        'bytes':total,'totalBytes':spec['compressedBytes'],'connections':workers}),flush=True)
+                    last=time.monotonic()
+        except Exception:
+            for future in futures:future.cancel()
+            raise
+    assembling=path.with_suffix('.assembling')
+    with assembling.open('wb') as output:
+        for start,end in ranges:
+            with (parts/f'{start}-{end}').open('rb') as source:shutil.copyfileobj(source,output,8*1024*1024)
+        output.flush();os.fsync(output.fileno())
+    if assembling.stat().st_size!=spec['compressedBytes']:raise ValueError('SNAPSHOT_ASSEMBLY_INCOMPLETE')
+    assembling.replace(path)
+
+
 def fetch(spec,path):
     path=Path(path)
     record=path.with_suffix('.json')
@@ -49,6 +110,9 @@ def fetch(spec,path):
     partial=path.with_suffix('.part')
     offset=partial.stat().st_size if partial.exists() else 0
     if offset>spec['compressedBytes']:raise ValueError('SNAPSHOT_PARTIAL_OVERSIZED')
+    if spec['component']=='bor' and offset<spec['compressedBytes']:
+        parallel_download(spec,partial)
+        offset=partial.stat().st_size
     if offset<spec['compressedBytes']:
         headers={'User-Agent':'Mozilla/5.0','If-Match':spec['etag']}
         if offset:headers['Range']=f'bytes={offset}-'
@@ -74,6 +138,8 @@ def fetch(spec,path):
     # The record precedes the atomic move; an interrupted download can be resumed.
     record.write_text(json.dumps(result,sort_keys=True));record.chmod(0o644)
     partial.chmod(0o644);partial.replace(path)
+    chunks=partial.with_suffix('.chunks')
+    if chunks.exists():shutil.rmtree(chunks)
     return result
 
 

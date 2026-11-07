@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private Asset Hunter to Polygon read-RPC access over existing VPC peering
+Parameters:
+  NodeSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  AssetHunterSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+Resources:
+  NodeIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Asset Hunter read-only Polygon RPC over private peering
+      GroupId: !Ref NodeSecurityGroupId
+      SourceSecurityGroupId: !Ref AssetHunterSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 8545
+      ToPort: 8545
+  HunterEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: Polygon node read-only RPC over private peering
+      GroupId: !Ref AssetHunterSecurityGroupId
+      DestinationSecurityGroupId: !Ref NodeSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 8545
+      ToPort: 8545
+Outputs:
+  Status:
+    Value: NETWORK_ACCESS_ONLY_REQUIRES_RUNTIME_READINESS_AND_CONSUMER_PROOF
