@@ -4,13 +4,19 @@ const target = process.env.OMEGA_NODE_RPC_URL;
 if (!target || !/^http:\/\/10\./.test(target)) throw new Error('PRIVATE_TARGET_REQUIRED');
 (async () => {
   const started = performance.now();
+  let transportReachable = false;
+  let httpStatus = null;
   try {
     const response = await fetch(target, {
       method: 'POST', signal: AbortSignal.timeout(10000),
       headers: { 'Content-Type': 'application/json', 'User-Agent': 'OMEGA-PolygonNode/1.0' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_chainId', params: [] }),
     });
-    const payload = await response.json();
+    transportReachable = true;
+    httpStatus = response.status;
+    // The readiness gate deliberately returns a plain HTTP 503 before sync.
+    // Reaching that gate is transport evidence, never chain readiness evidence.
+    const payload = response.ok ? await response.json() : {};
     const chainVerified = response.ok && payload.id === 1 && payload.result === '0x89';
     console.log(JSON.stringify({ schema: 'omega.node.consumer-network-probe.v1',
       checkedAt: new Date().toISOString(), httpStatus: response.status,
@@ -19,7 +25,7 @@ if (!target || !/^http:\/\/10\./.test(target)) throw new Error('PRIVATE_TARGET_R
     process.exitCode = chainVerified ? 0 : 2;
   } catch (error) {
     console.log(JSON.stringify({ schema: 'omega.node.consumer-network-probe.v1',
-      checkedAt: new Date().toISOString(), transportReachable: false,
+      checkedAt: new Date().toISOString(), transportReachable, httpStatus,
       chainVerified: false, readinessCertified: false, executionAuthorized: false,
       errorType: error.name }));
     process.exitCode = 1;
