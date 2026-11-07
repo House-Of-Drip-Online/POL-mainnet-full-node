@@ -14,6 +14,8 @@ import time
 import urllib.request
 
 ROOT=Path(__file__).resolve().parent
+# XFS filesystem labels are limited to 12 bytes. Keep this stable after first format.
+XFS_VOLUME_LABEL='omega-pol137'
 
 
 def configure_bor(config):
@@ -106,12 +108,12 @@ def mount_volume(volume_id):
     disk=matches[0];device=disk['path']
     signatures=json.loads(run('wipefs','--no-act','--json',device)).get('signatures',[])
     if not signatures and may_format({'blockdevices':[disk]}):
-        run('mkfs.xfs','-L','omega-polygon',device)
+        run('mkfs.xfs','-L',XFS_VOLUME_LABEL,device)
     elif disk.get('fstype')!='xfs' or disk.get('children'):
         raise ValueError('REFUSE_TO_REFORMAT_EXISTING_DATA')
     uuid=run('blkid','-s','UUID','-o','value',device)
     label=run('blkid','-s','LABEL','-o','value',device)
-    if label!='omega-polygon':raise ValueError('VOLUME_OWNERSHIP_LABEL_MISMATCH')
+    if label!=XFS_VOLUME_LABEL:raise ValueError('VOLUME_OWNERSHIP_LABEL_MISMATCH')
     Path('/data').mkdir(exist_ok=True)
     fstab=Path('/etc/fstab');body=fstab.read_text()
     entry=f'UUID={uuid} /data xfs defaults,noatime 0 2'

@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 import json
 import pathlib
 import sys
@@ -104,6 +105,14 @@ class BootstrapSafetyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.mod.verify_file(path,'0'*64)
             self.assertEqual(path.read_bytes(),b'keep-me')
+
+    def test_xfs_label_is_valid_and_consistent_across_mount_lifecycle(self):
+        label = self.mod.XFS_VOLUME_LABEL
+        self.assertEqual(label, 'omega-pol137')
+        self.assertLessEqual(len(label.encode('ascii')), 12)
+        mount_source = inspect.getsource(self.mod.mount_volume)
+        self.assertGreaterEqual(mount_source.count('XFS_VOLUME_LABEL'), 2)
+        self.assertNotIn("'omega-polygon'", mount_source)
 
     def test_disk_format_refuses_any_existing_signature(self):
         self.assertFalse(self.mod.may_format({'blockdevices':[{'name':'nvme1n1','type':'disk','fstype':'xfs','children':[]}]}))
