@@ -14,7 +14,7 @@ import time
 import urllib.request
 
 ROOT=Path(__file__).resolve().parent
-# XFS filesystem labels are limited to 12 bytes. Keep this stable after first format.
+# XFS labels are limited to 12 bytes; preserve the deployed volume identity.
 XFS_VOLUME_LABEL='omega-pol137'
 
 
@@ -135,6 +135,7 @@ def install(settings):
     import tomlkit
     if os.geteuid()!=0:raise ValueError('HOST_ROOT_REQUIRED')
     if run('dpkg','--print-architecture')!='amd64':raise ValueError('AMD64_REQUIRED')
+    print('{"event":"BOOTSTRAP_MOUNT"}',flush=True)
     mount_volume(settings['volumeId'])
     lock=json.loads((ROOT/'release-lock.json').read_text())
     if lock['chainId']!=137:raise ValueError('CHAIN_MISMATCH')
@@ -149,6 +150,7 @@ def install(settings):
     if marker.exists() and marker.read_text()!=fingerprint:raise ValueError('EXPLICIT_RELEASE_UPGRADE_REQUIRED')
     if not marker.exists():
         for component in ('heimdall','bor'):
+            print(json.dumps({'event':'BOOTSTRAP_PACKAGES','component':component}),flush=True)
             for artifact in lock[component]['artifacts']:
                 destination=cache/artifact['name']
                 download(artifact,destination)
@@ -182,6 +184,7 @@ def install(settings):
         run('chown',f'{owner}:nogroup',str(path))
     from snapshot import install as install_snapshot
     for component in ('heimdall','bor'):
+        print(json.dumps({'event':'BOOTSTRAP_SNAPSHOT','component':component}),flush=True)
         install_snapshot(component)
     ip=ipaddress.ip_address(settings['privateIp'])
     if not ip.is_private or ip.is_unspecified:raise ValueError('PRIVATE_RPC_BIND_REQUIRED')
@@ -209,6 +212,11 @@ def main():
     except Exception as exc:
         # Commands can contain credentials on other systems; emit type only.
         print(json.dumps({'event':'BOOTSTRAP_FAILED','errorType':type(exc).__name__}),flush=True)
+        if isinstance(exc,ValueError):print(json.dumps({'reason':str(exc)}),flush=True)
+        if isinstance(exc,subprocess.CalledProcessError):
+            # Fixed installer commands contain no credentials; no environment dump.
+            print(json.dumps({'program':exc.cmd[0],'returnCode':exc.returncode,
+                              'stderr':(exc.stderr or '')[-2000:]}),flush=True)
         raise SystemExit(1) from None
 
 
