@@ -114,6 +114,23 @@ class BootstrapSafetyTests(unittest.TestCase):
         self.assertGreaterEqual(mount_source.count('XFS_VOLUME_LABEL'), 2)
         self.assertNotIn("'omega-polygon'", mount_source)
 
+    def test_heimdall_nonvalidator_identity_is_idempotent_and_fail_closed(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = pathlib.Path(d)
+            self.assertEqual(self.mod.heimdall_identity_state(home), 'MISSING')
+            node_key = home / 'config/node_key.json'
+            node_key.parent.mkdir()
+            node_key.write_text('{"id":"test"}')
+            with self.assertRaisesRegex(ValueError, 'PARTIAL_IDENTITY'):
+                self.mod.heimdall_identity_state(home)
+            val_key = home / 'config/priv_validator_key.json'
+            val_key.write_text('{"address":"test"}')
+            val_state = home / 'data/priv_validator_state.json'
+            val_state.parent.mkdir()
+            val_state.write_text('{"height":"0"}')
+            self.assertEqual(self.mod.heimdall_identity_state(home), 'READY')
+            self.assertEqual(node_key.read_text(), '{"id":"test"}')
+
     def test_disk_format_refuses_any_existing_signature(self):
         self.assertFalse(self.mod.may_format({'blockdevices':[{'name':'nvme1n1','type':'disk','fstype':'xfs','children':[]}]}))
         self.assertFalse(self.mod.may_format({'blockdevices':[{'name':'nvme1n1','type':'disk','fstype':None,'children':[{'name':'p1'}]}]}))
