@@ -128,6 +128,31 @@ def safe_load(path):
         return {}
 
 
+
+def resolve_observations(readiness, maintenance, progress, *, now):
+    """Allow unprivileged operators to read a fresh, fail-closed monitor snapshot.
+
+    The restore stage is owner-restricted. The monitor has already copied its
+    read-only status into /run; never use an old snapshot or let it override a
+    directly accessible source.
+    """
+    sources={"maintenance":"DIRECT" if maintenance else "ABSENT",
+             "progress":"DIRECT" if progress else "ABSENT"}
+    checked=readiness.get("checkedAt") if isinstance(readiness,dict) else None
+    snapshot_current=(type(checked) in (int,float) and -10 <= now-checked <= 120
+                      and readiness.get("status") == "FAIL")
+    if snapshot_current:
+        snapshot_maintenance=readiness.get("maintenance")
+        if not maintenance and isinstance(snapshot_maintenance,dict):
+            maintenance=snapshot_maintenance
+            sources["maintenance"]="MONITOR_SNAPSHOT"
+        snapshot_restore=readiness.get("restore")
+        if not progress and isinstance(snapshot_restore,dict) and maintenance.get("reason") == "BOR_FULL_RESTORE_PENDING":
+            progress=snapshot_restore
+            sources["progress"]="MONITOR_SNAPSHOT"
+    return maintenance,progress,sources
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--readiness",default="/run/omega-polygon/readiness.json")
@@ -139,10 +164,13 @@ def main():
         disk=shutil.disk_usage(args.disk)
     except OSError:
         disk=None
-    result=classify(maintenance=safe_load(args.maintenance),
-                    progress=safe_load(args.progress),
-                    readiness=safe_load(args.readiness),
-                    disk=disk)
+    now=time.time()
+    readiness=safe_load(args.readiness)
+    maintenance,progress,sources=resolve_observations(
+        readiness,safe_load(args.maintenance),safe_load(args.progress),now=now)
+    result=classify(maintenance=maintenance,progress=progress,
+                    readiness=readiness,disk=disk,now=now)
+    result["evidence_sources"]=sources
     print(json.dumps(result,sort_keys=True))
     return 0 if result["selected"] in ("PINNED_FULL_RESTORE","VERIFY_CONSUMER_PATH_AND_RECOVERY_TESTS") else 2
 
