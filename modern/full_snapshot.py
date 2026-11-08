@@ -280,8 +280,16 @@ def restore_component(spec, stage, progress_path, prefix_completed):
         if errors: raise errors[0]
         if proc.wait() != 0 or consumed != spec['compressedBytes']:
             raise ValueError('FULL_SNAPSHOT_COMPRESSION_OR_SIZE_FAILURE')
-    except BaseException:
-        proc.kill(); proc.wait(); worker.join(); raise
+    except BaseException as extraction_error:
+        proc.kill(); proc.wait(); worker.join()
+        # A transport exception can close lz4 stdout and cause tarfile to
+        # report only "unexpected end of data". Preserve the primary range
+        # failure after joining the streaming worker; ignore a BrokenPipe
+        # induced solely by terminating the failed extraction.
+        upstream = next((error for error in errors if not isinstance(error, BrokenPipeError)), None)
+        if upstream is not None:
+            raise upstream from extraction_error
+        raise
     record = {'identity': identity, 'url': spec['url'], 'etag': spec['etag'],
               'compressedBytes': consumed, 'sha256': digest.hexdigest(), **extracted,
               'completedAt': time.time(), 'canonicalStateVerified': False}
