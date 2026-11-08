@@ -222,7 +222,7 @@ def verify_ancient_layout(database):
     segments = {}
     for family in ('bodies', 'headers', 'receipts'):
         indices = []
-        pattern = re.compile(re.escape(family) + r'\\.(\\d{4,6})\\.cdat')
+        pattern = re.compile(re.escape(family) + r'\.(\d{4,6})\.cdat')
         for file in directory.glob(family + '.*.cdat'):
             match = pattern.fullmatch(file.name)
             if not match or file.is_symlink() or not file.is_file():
