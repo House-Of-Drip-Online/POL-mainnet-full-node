@@ -111,6 +111,8 @@ df -h /data
 curl -fsS http://127.0.0.1:26657/status
 ```
 
+A read-only, source-only six-path triage helper is available at `modern/recovery_advisor.py` after the associated immutable node release is installed. It selects continued guarded restoration while fresh progress and capacity are proven; it never executes a competing restore or grants LIVE authority. Its unprivileged view may use a *fresh* copy of the protected restore record in the existing monitor readiness snapshot, never a stale copy. See [DAppNode reuse/gap closure](docs/POLYGON_NODE_DAPPNODE_GAP_CLOSURE_20261108.md).
+
 The gateway returns 503 while syncing or when corroboration fails. Health
 evidence goes to the stack's CloudWatch log group and `OMEGA/PolygonNode`.
 Expected initial readiness alarms are not permission to disable the gate.
