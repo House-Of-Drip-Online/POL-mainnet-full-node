@@ -14,6 +14,7 @@ import urllib.request
 from rpc_gate import evaluate_rpc_gate, rpc_query, height
 
 MAINTENANCE_PATH = pathlib.Path('/etc/omega-polygon/maintenance.json')
+RESTORE_PROGRESS_PATH = pathlib.Path('/data/bor/full-restore/progress.json')
 
 
 def bor_start_allowed(raw, *, maintenance_path=MAINTENANCE_PATH, now=None):
@@ -65,7 +66,7 @@ def check(reference):
             result['failures'].append('NODE_MAINTENANCE')
             try:
                 result['maintenance'] = json.loads(MAINTENANCE_PATH.read_text())
-                progress = pathlib.Path('/data/bor/full-restore/progress.json')
+                progress = RESTORE_PROGRESS_PATH
                 if progress.exists():
                     result['restore'] = json.loads(progress.read_text())
                     payload = result['restore']
@@ -110,16 +111,8 @@ def write_atomic(path,data):
     temp.replace(path)
 
 
-def emit_cloudwatch(settings,result):
-    import boto3
-    from botocore.config import Config
-    cfg=Config(connect_timeout=2,read_timeout=3,retries={'max_attempts':1})
-    logs=boto3.client('logs',region_name=settings['region'],config=cfg)
-    stream='node-health'
-    try:logs.create_log_stream(logGroupName=settings['logGroup'],logStreamName=stream)
-    except logs.exceptions.ResourceAlreadyExistsException:pass
-    logs.put_log_events(logGroupName=settings['logGroup'],logStreamName=stream,
-        logEvents=[{'timestamp':int(time.time()*1000),'message':json.dumps(result,sort_keys=True)}])
+def cloudwatch_metrics(result, node_name):
+    """Missing disk measurements never become zero-usage measurements."""
     metrics=[{'MetricName':'Ready','Value':int(result['status']=='PASS'),'Unit':'Count'},
              {'MetricName':'DiskTelemetryHealthy','Value':int('diskUsedPercent' in result),'Unit':'Count'}]
     if 'diskUsedPercent' in result:
@@ -132,9 +125,22 @@ def emit_cloudwatch(settings,result):
     if 'restoreComponentPercent' in result:
         metrics.append({'MetricName':'RestoreComponentPercent',
                         'Value':result['restoreComponentPercent'],'Unit':'Percent'})
-    for row in metrics:row['Dimensions']=[{'Name':'Node','Value':settings['nodeName']}]
+    for row in metrics:row['Dimensions']=[{'Name':'Node','Value':node_name}]
+    return metrics
+
+
+def emit_cloudwatch(settings,result):
+    import boto3
+    from botocore.config import Config
+    cfg=Config(connect_timeout=2,read_timeout=3,retries={'max_attempts':1})
+    logs=boto3.client('logs',region_name=settings['region'],config=cfg)
+    stream='node-health'
+    try:logs.create_log_stream(logGroupName=settings['logGroup'],logStreamName=stream)
+    except logs.exceptions.ResourceAlreadyExistsException:pass
+    logs.put_log_events(logGroupName=settings['logGroup'],logStreamName=stream,
+        logEvents=[{'timestamp':int(time.time()*1000),'message':json.dumps(result,sort_keys=True)}])
     boto3.client('cloudwatch',region_name=settings['region'],config=cfg).put_metric_data(
-        Namespace='OMEGA/PolygonNode',MetricData=metrics)
+        Namespace='OMEGA/PolygonNode',MetricData=cloudwatch_metrics(result,settings['nodeName']))
 
 
 def main():
