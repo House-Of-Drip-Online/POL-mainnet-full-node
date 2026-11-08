@@ -39,6 +39,18 @@ def read_heimdall():
 
 def check(reference):
     result={'status':'FAIL','failures':[],'checkedAt':time.time(),'executionAuthorized':False}
+    # Storage observability is essential *during* multi-terabyte restoration.
+    # Never skip this on the maintenance short-circuit or synthesize 0% use.
+    try:
+        usage = shutil.disk_usage('/data')
+        if usage.total <= 0 or usage.free < 0 or usage.free > usage.total:
+            raise ValueError('INVALID_DISK_USAGE')
+        result['diskUsedPercent'] = 100 * (1 - usage.free / usage.total)
+        result['diskFreeGiB'] = usage.free / 1024**3
+        if usage.free < 100 * 1024**3 or result['diskUsedPercent'] >= 95:
+            result['failures'].append('DISK_PRESSURE')
+    except (OSError, ValueError, ZeroDivisionError):
+        result['failures'].append('DISK_TELEMETRY_UNAVAILABLE')
     try:
         heimdall = read_heimdall()
         sync = heimdall['result']['sync_info']
@@ -54,8 +66,23 @@ def check(reference):
             try:
                 result['maintenance'] = json.loads(MAINTENANCE_PATH.read_text())
                 progress = pathlib.Path('/data/bor/full-restore/progress.json')
-                if progress.exists(): result['restore'] = json.loads(progress.read_text())
-            except (OSError, ValueError): result['failures'].append('MAINTENANCE_EVIDENCE_UNREADABLE')
+                if progress.exists():
+                    result['restore'] = json.loads(progress.read_text())
+                    payload = result['restore']
+                    if payload.get('status') == 'RESTORING':
+                        checked = payload.get('checkedAt')
+                        age = time.time() - checked if type(checked) in (int, float) else float('inf')
+                        result['restoreProgressAgeSeconds'] = round(age, 3) if age != float('inf') else None
+                        if not -30 <= age <= 180:
+                            result['failures'].append('RESTORE_PROGRESS_STALE')
+                        read, total = payload.get('compressedBytesRead'), payload.get('componentBytes')
+                        if type(read) is int and type(total) is int and total > 0 and 0 <= read <= total:
+                            result['restoreComponentPercent'] = 100 * read / total
+                        else:
+                            result['failures'].append('RESTORE_PROGRESS_INVALID')
+                else:
+                    result['failures'].append('RESTORE_PROGRESS_MISSING')
+            except (OSError, ValueError, TypeError): result['failures'].append('MAINTENANCE_EVIDENCE_UNREADABLE')
             result['checkedAt'] = time.time()
             return result
         gate=evaluate_rpc_gate('http://127.0.0.1:18545',reference,timeout_seconds=4)
@@ -64,10 +91,6 @@ def check(reference):
         peers=height(rpc_query('http://127.0.0.1:18545','net_peerCount',[],4))
         result['peerCount']=peers
         if peers<1:result['failures'].append('NO_BOR_PEERS')
-        usage=shutil.disk_usage('/data')
-        result['diskUsedPercent']=100*(1-usage.free/usage.total)
-        if usage.free<100*1024**3 or result['diskUsedPercent']>=95:
-            result['failures'].append('DISK_PRESSURE')
     except Exception:
         result['failures'].append('MONITOR_READ_FAILED')
     result['status']='PASS' if not result['failures'] else 'FAIL'
@@ -98,7 +121,17 @@ def emit_cloudwatch(settings,result):
     logs.put_log_events(logGroupName=settings['logGroup'],logStreamName=stream,
         logEvents=[{'timestamp':int(time.time()*1000),'message':json.dumps(result,sort_keys=True)}])
     metrics=[{'MetricName':'Ready','Value':int(result['status']=='PASS'),'Unit':'Count'},
-             {'MetricName':'DiskUsedPercent','Value':result.get('diskUsedPercent',0),'Unit':'Percent'}]
+             {'MetricName':'DiskTelemetryHealthy','Value':int('diskUsedPercent' in result),'Unit':'Count'}]
+    if 'diskUsedPercent' in result:
+        metrics.append({'MetricName':'DiskUsedPercent','Value':result['diskUsedPercent'],'Unit':'Percent'})
+    if 'diskFreeGiB' in result:
+        metrics.append({'MetricName':'DiskFreeGiB','Value':result['diskFreeGiB'],'Unit':'Gigabytes'})
+    if result.get('restoreProgressAgeSeconds') is not None:
+        metrics.append({'MetricName':'RestoreProgressAgeSeconds',
+                        'Value':max(0, result['restoreProgressAgeSeconds']),'Unit':'Seconds'})
+    if 'restoreComponentPercent' in result:
+        metrics.append({'MetricName':'RestoreComponentPercent',
+                        'Value':result['restoreComponentPercent'],'Unit':'Percent'})
     for row in metrics:row['Dimensions']=[{'Name':'Node','Value':settings['nodeName']}]
     boto3.client('cloudwatch',region_name=settings['region'],config=cfg).put_metric_data(
         Namespace='OMEGA/PolygonNode',MetricData=metrics)
