@@ -13,6 +13,8 @@ import hashlib
 import io
 import json
 import os
+import re
+from urllib.parse import urlsplit
 from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
@@ -145,19 +147,98 @@ def file_digest(path):
     with Path(path).open('rb') as file: return hashlib.file_digest(file, 'sha256').hexdigest()
 
 
-def merge_database(source, destination):
+def merge_database(source, destination, on_item=None):
     """Same-filesystem moves; conflicting base/increment bytes stop promotion."""
     source = Path(source); destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True, mode=0o700)
     for item in source.iterdir():
         target = destination/item.name
         if item.is_symlink() or target.is_symlink(): raise ValueError('FULL_SNAPSHOT_LOCAL_SYMLINK')
-        if item.is_dir(): merge_database(item, target)
+        if item.is_dir(): merge_database(item, target, on_item)
         elif target.exists():
             if target.stat().st_size != item.stat().st_size or file_digest(target) != file_digest(item):
                 raise ValueError('FULL_SNAPSHOT_COMPONENT_OVERLAP')
             item.unlink()  # An independently byte-verified duplicate only.
         else: item.rename(target)
+        if on_item: on_item()
+
+
+
+def validate_snapshot_plan(lock):
+    """Reject overlapping/missing block ranges or unbounded transport objects."""
+    if not isinstance(lock, dict) or lock.get('chainId') != 137:
+        raise ValueError('FULL_SNAPSHOT_CHAIN_MISMATCH')
+    components = lock.get('components')
+    if not isinstance(components, list) or not 2 <= len(components) <= 16:
+        raise ValueError('FULL_SNAPSHOT_COMPONENTS_INVALID')
+    previous_end = -1
+    names = set()
+    for spec in components:
+        if not isinstance(spec, dict):
+            raise ValueError('FULL_SNAPSHOT_COMPONENT_INVALID')
+        name = spec.get('name')
+        if (not isinstance(name, str)
+            or not re.fullmatch(r'[a-z][a-z0-9_-]{0,60}', name)
+            or name in names):
+            raise ValueError('FULL_SNAPSHOT_COMPONENT_ID_INVALID')
+        names.add(name)
+        start, end = spec.get('firstBlock'), spec.get('lastBlock')
+        if (type(start) is not int or type(end) is not int
+            or start != previous_end + 1 or end < start):
+            raise ValueError('FULL_SNAPSHOT_BLOCK_RANGE_GAP_OR_OVERLAP')
+        previous_end = end
+        compressed, upper = spec.get('compressedBytes'), spec.get('maxUncompressedBytes')
+        if (type(compressed) is not int or type(upper) is not int
+            or not 0 < compressed <= 16 * 1024**4
+            or not 0 < upper <= 16 * 1024**4):
+            raise ValueError('FULL_SNAPSHOT_SIZE_BOUNDS_INVALID')
+        url = spec.get('url')
+        if not isinstance(url, str):
+            raise ValueError('FULL_SNAPSHOT_URL_INVALID')
+        parsed = urlsplit(url)
+        if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+            raise ValueError('FULL_SNAPSHOT_URL_INVALID')
+        etag = spec.get('etag')
+        if not isinstance(etag, str) or len(etag) < 4 or not etag.startswith('"') or not etag.endswith('"'):
+            raise ValueError('FULL_SNAPSHOT_ETAG_INVALID')
+    return {'rangeStart': 0, 'rangeEnd': previous_end, 'components': len(components)}
+
+
+def verify_ancient_layout(database):
+    """Structural evidence only: contiguous segment families and Pebble manifest."""
+    database = Path(database)
+    current = database / 'CURRENT'
+    if not current.is_file() or current.is_symlink() or not 0 < current.stat().st_size <= 128:
+        raise ValueError('FULL_SNAPSHOT_DATABASE_CURRENT_MISSING')
+    manifest_name = current.read_text(encoding='ascii').strip()
+    if not re.fullmatch(r'MANIFEST-[0-9]{1,20}', manifest_name):
+        raise ValueError('FULL_SNAPSHOT_MANIFEST_POINTER_INVALID')
+    manifest = database / manifest_name
+    if not manifest.is_file() or manifest.is_symlink() or manifest.stat().st_size == 0:
+        raise ValueError('FULL_SNAPSHOT_MANIFEST_MISSING')
+    directory = database / 'ancient' / 'chain'
+    if not directory.is_dir() or directory.is_symlink():
+        raise ValueError('FULL_SNAPSHOT_ANCIENT_DIRECTORY_MISSING')
+    segments = {}
+    for family in ('bodies', 'headers', 'receipts'):
+        indices = []
+        pattern = re.compile(re.escape(family) + r'\.(\d{4,6})\.cdat')
+        for file in directory.glob(family + '.*.cdat'):
+            match = pattern.fullmatch(file.name)
+            if not match or file.is_symlink() or not file.is_file():
+                raise ValueError('FULL_SNAPSHOT_ANCIENT_SEGMENT_INVALID')
+            number = int(match.group(1))
+            if number > 100000:
+                raise ValueError('FULL_SNAPSHOT_ANCIENT_SEGMENT_UNBOUNDED')
+            indices.append(number)
+        if not indices or len(set(indices)) != len(indices):
+            raise ValueError('FULL_SNAPSHOT_ANCIENT_FAMILY_MISSING')
+        maximum = max(indices)
+        if min(indices) != 0 or len(indices) != maximum + 1:
+            raise ValueError('FULL_SNAPSHOT_ANCIENT_SEGMENT_GAP')
+        segments[family] = {'first': 0, 'last': maximum, 'count': len(indices)}
+    return {'manifest': manifest_name, 'ancient_segments': segments,
+            'authority': 'STRUCTURAL_ONLY_NATIVE_CHAIN_PROOF_REQUIRED'}
 
 
 def restore_component(spec, stage, progress_path, prefix_completed):
@@ -209,6 +290,7 @@ def restore_component(spec, stage, progress_path, prefix_completed):
 
 
 def restore(lock):
+    validate_snapshot_plan(lock)
     identity = hashlib.sha256(json.dumps(lock, sort_keys=True).encode()).hexdigest()
     stage = WORK/identity
     stage.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -224,12 +306,24 @@ def restore(lock):
         records.append(restore_component(spec, stage/spec['name'], WORK/'progress.json', done))
         done += spec['compressedBytes']
     combined = stage/'combined'
+    progress_path = WORK/'progress.json'
+    state = {'status': 'MERGING', 'checkedAt': time.time(), 'processedEntries': 0,
+             'canonicalStateVerified': False, 'executionAuthorized': False}
+    atomic_json(progress_path, state)
+    last_report = [time.monotonic()]
+    def report_item():
+        state['processedEntries'] += 1
+        now = time.monotonic()
+        if now - last_report[0] >= 20:
+            state['checkedAt'] = time.time()
+            atomic_json(progress_path, state)
+            last_report[0] = now
     for spec in lock['components']:
-        merge_database(stage/spec['name']/'bor/chaindata', combined)
-    if not (combined/'CURRENT').is_file() or not any((combined/'ancient/chain').glob('*.cdat')):
-        raise ValueError('FULL_SNAPSHOT_DATABASE_LAYOUT_MISSING')
+        merge_database(stage/spec['name']/'bor/chaindata', combined, report_item)
+    layout = verify_ancient_layout(combined)
     record = {'schema': 'omega.bor.full-restore.v1', 'identity': identity,
-              'database': str(combined), 'components': records, 'completedAt': time.time(),
+              'database': str(combined), 'components': records, 'structuralEvidence': layout,
+              'completedAt': time.time(),
               'canonicalStateVerified': False, 'executionAuthorized': False}
     atomic_json(final, record)
     atomic_json(WORK/'progress.json', {'status': 'RESTORED_PENDING_NATIVE_VALIDATION',
@@ -241,7 +335,7 @@ def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--worker', action='store_true')
     args = parser.parse_args()
     lock = json.loads((ROOT/'full-snapshot-lock.json').read_text())
-    if lock['chainId'] != 137: raise ValueError('FULL_SNAPSHOT_CHAIN_MISMATCH')
+    validate_snapshot_plan(lock)
     if args.worker:
         restore(lock); return
     if os.geteuid() != 0: raise ValueError('PROMOTION_REQUIRES_HOST_ROOT')

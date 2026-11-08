@@ -72,16 +72,19 @@ def check(reference):
                     payload = result['restore']
                     if not isinstance(payload, dict):
                         raise ValueError('RESTORE_PROGRESS_RECORD_INVALID')
-                    if payload.get('status') == 'RESTORING':
+                    if payload.get('status') in ('RESTORING', 'MERGING'):
                         checked = payload.get('checkedAt')
                         age = time.time() - checked if type(checked) in (int, float) else float('inf')
                         result['restoreProgressAgeSeconds'] = round(age, 3) if age != float('inf') else None
                         if not -30 <= age <= 180:
                             result['failures'].append('RESTORE_PROGRESS_STALE')
-                        read, total = payload.get('compressedBytesRead'), payload.get('componentBytes')
-                        if type(read) is int and type(total) is int and total > 0 and 0 <= read <= total:
-                            result['restoreComponentPercent'] = 100 * read / total
-                        else:
+                        if payload.get('status') == 'RESTORING':
+                            read, total = payload.get('compressedBytesRead'), payload.get('componentBytes')
+                            if type(read) is int and type(total) is int and total > 0 and 0 <= read <= total:
+                                result['restoreComponentPercent'] = 100 * read / total
+                            else:
+                                result['failures'].append('RESTORE_PROGRESS_INVALID')
+                        elif type(payload.get('processedEntries')) is not int or payload['processedEntries'] < 0:
                             result['failures'].append('RESTORE_PROGRESS_INVALID')
                 else:
                     result['failures'].append('RESTORE_PROGRESS_MISSING')

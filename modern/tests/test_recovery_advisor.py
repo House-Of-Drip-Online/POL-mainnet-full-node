@@ -30,6 +30,16 @@ class RecoveryAdvisorTests(unittest.TestCase):
         self.assertTrue(all(x["state"]!="CONTINUE_EXISTING_WRITER_ONLY"
                             for x in d["recovery_routes"][1:]))
 
+    def test_merge_phase_heartbeat_is_first_class_and_fails_closed(self):
+        merging={"status":"MERGING","checkedAt":T-10,"processedEntries":2000}
+        d=diagnose(progress=merging)
+        self.assertEqual(d["selected"],"PINNED_FULL_RESTORE")
+        self.assertEqual(d["progress_status"],"MERGING")
+        self.assertEqual(diagnose(progress=dict(merging,checkedAt=T-500))["selected"],
+                         "INVESTIGATE_RESTORE_STALL")
+        self.assertEqual(diagnose(progress=dict(merging,processedEntries=-1))["selected"],
+                         "INVESTIGATE_RESTORE_EVIDENCE")
+
     def test_stale_progress_requires_investigation_not_restart(self):
         d=diagnose(progress=dict(PROGRESS,checkedAt=T-650))
         self.assertEqual(d["selected"],"INVESTIGATE_RESTORE_STALL")

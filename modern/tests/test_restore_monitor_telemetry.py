@@ -95,6 +95,15 @@ class RestoreMonitoringTests(unittest.TestCase):
         d=self.observe()
         self.assertIn("RESTORE_PROGRESS_INVALID",d["failures"])
 
+    def test_merge_heartbeat_reports_age_not_quote_download_fraction(self):
+        self.progress.write_text(json.dumps({"status":"MERGING","checkedAt":time.time()-10,
+                                             "processedEntries":13000}))
+        d=self.observe()
+        self.assertEqual(d["restore"]["status"],"MERGING")
+        self.assertLess(d["restoreProgressAgeSeconds"],180)
+        self.assertNotIn("restoreComponentPercent",d)
+        self.assertNotIn("RESTORE_PROGRESS_INVALID",d["failures"])
+
     def test_missing_restore_progress_is_explicit(self):
         d=self.observe()
         self.assertIn("RESTORE_PROGRESS_MISSING",d["failures"])
