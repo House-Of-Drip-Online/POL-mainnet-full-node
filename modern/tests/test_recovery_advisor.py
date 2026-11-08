@@ -66,6 +66,20 @@ class RecoveryAdvisorTests(unittest.TestCase):
         self.assertEqual(d["selected"],"VALIDATE_CANONICAL_BOR")
         self.assertFalse(d["native_node_certified"])
 
+    def test_unprivileged_fresh_monitor_fallback_never_accepts_stale(self):
+        snapshot={"status":"FAIL","checkedAt":T-8,
+                  "maintenance":{"reason":"BOR_FULL_RESTORE_PENDING"},"restore":PROGRESS}
+        m,p,src=advisor.resolve_observations(snapshot,{}, {},now=T)
+        self.assertEqual(m["reason"],"BOR_FULL_RESTORE_PENDING")
+        self.assertEqual(p["status"],"RESTORING")
+        self.assertEqual(src["progress"],"MONITOR_SNAPSHOT")
+        self.assertEqual(advisor.classify(maintenance=m,progress=p,
+                           readiness=snapshot,disk=OK_DISK,now=T)["selected"],
+                         "PINNED_FULL_RESTORE")
+        m,p,src=advisor.resolve_observations(dict(snapshot,checkedAt=T-400),{}, {},now=T)
+        self.assertEqual((m,p),({},{}))
+        self.assertEqual(src["progress"],"ABSENT")
+
     def test_readiness_not_authorization(self):
         d=diagnose(maintenance={},progress={},readiness={"status":"PASS"})
         self.assertEqual(d["selected"],"VERIFY_CONSUMER_PATH_AND_RECOVERY_TESTS")
