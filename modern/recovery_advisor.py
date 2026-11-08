@@ -62,31 +62,34 @@ def classify(*, maintenance, progress, readiness, disk, now=None):
         alerts.append("CONTRADICTORY_READINESS_DURING_MAINTENANCE")
 
     age = None
-    if progress_state == "RESTORING":
+    if progress_state in ("RESTORING","MERGING"):
         t = progress.get("checkedAt")
         if type(t) in (int, float):
             age = now - t
         if age is None or not -30 <= age <= MAX_PROGRESS_AGE_SECONDS:
             alerts.append("RESTORE_PROGRESS_STALE")
-        read, maximum = progress.get("compressedBytesRead"), progress.get("componentBytes")
-        if type(read) is not int or type(maximum) is not int or maximum <= 0 or not 0 <= read <= maximum:
+        if progress_state == "RESTORING":
+            read, maximum = progress.get("compressedBytesRead"), progress.get("componentBytes")
+            if type(read) is not int or type(maximum) is not int or maximum <= 0 or not 0 <= read <= maximum:
+                alerts.append("RESTORE_PROGRESS_INVALID")
+        elif type(progress.get("processedEntries")) is not int or progress["processedEntries"] < 0:
             alerts.append("RESTORE_PROGRESS_INVALID")
 
     if maintenance_reason not in (None, "BOR_FULL_RESTORE_PENDING"):
         alerts.append("MAINTENANCE_OWNERSHIP_CONFLICT")
         selected = "STOP_FOR_GOVERNANCE_REVIEW"
-    elif progress_state == "RESTORING" and not maintenance_reason:
+    elif progress_state in ("RESTORING","MERGING") and not maintenance_reason:
         alerts.append("RESTORE_RUNNING_WITHOUT_OWNED_MAINTENANCE")
         selected = "STOP_FOR_GOVERNANCE_REVIEW"
-    elif progress_state == "RESTORING" and "RESTORE_PROGRESS_INVALID" in alerts:
+    elif progress_state in ("RESTORING","MERGING") and "RESTORE_PROGRESS_INVALID" in alerts:
         selected = "INVESTIGATE_RESTORE_EVIDENCE"
-    elif progress_state == "RESTORING" and "RESTORE_PROGRESS_STALE" in alerts:
+    elif progress_state in ("RESTORING","MERGING") and "RESTORE_PROGRESS_STALE" in alerts:
         selected = "INVESTIGATE_RESTORE_STALL"
-    elif progress_state == "RESTORING" and free_gib is not None and free_gib < MIN_RESTORE_FREE_GIB:
+    elif progress_state in ("RESTORING","MERGING") and free_gib is not None and free_gib < MIN_RESTORE_FREE_GIB:
         selected = "STORAGE_CAPACITY_REVIEW"
-    elif progress_state == "RESTORING" and free_gib is None:
+    elif progress_state in ("RESTORING","MERGING") and free_gib is None:
         selected = "STORAGE_TELEMETRY_REVIEW"
-    elif progress_state == "RESTORING":
+    elif progress_state in ("RESTORING","MERGING"):
         selected = "PINNED_FULL_RESTORE"
         options[0]["state"] = "CONTINUE_EXISTING_WRITER_ONLY"
     elif progress_state == "RESTORED_PENDING_NATIVE_VALIDATION":
