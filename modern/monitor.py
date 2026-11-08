@@ -70,6 +70,8 @@ def check(reference):
                 if progress.exists():
                     result['restore'] = json.loads(progress.read_text())
                     payload = result['restore']
+                    if not isinstance(payload, dict):
+                        raise ValueError('RESTORE_PROGRESS_RECORD_INVALID')
                     if payload.get('status') == 'RESTORING':
                         checked = payload.get('checkedAt')
                         age = time.time() - checked if type(checked) in (int, float) else float('inf')
