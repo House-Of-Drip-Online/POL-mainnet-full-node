@@ -287,6 +287,19 @@ def restore_component(spec, stage, progress_path, prefix_completed):
         # failure after joining the streaming worker; ignore a BrokenPipe
         # induced solely by terminating the failed extraction.
         upstream = next((error for error in errors if not isinstance(error, BrokenPipeError)), None)
+        cause = upstream if upstream is not None else extraction_error
+        # Persist the terminal state after the streaming thread has stopped:
+        # otherwise its last heartbeat can leave the operator display RESTORING.
+        # Error messages may contain signed transport URLs; publish codes only.
+        reason = str(cause)
+        condition = (f'HTTP_{cause.code}' if isinstance(cause, urllib.error.HTTPError)
+                     else reason if re.fullmatch(r'[A-Z][A-Z0-9_]{0,119}', reason)
+                     else type(cause).__name__)
+        atomic_json(progress_path, {'status': 'FAILED', 'component': spec['name'],
+            'compressedBytesRead': consumed, 'componentBytes': spec['compressedBytes'],
+            'completedComponentsBytes': prefix_completed, 'checkedAt': time.time(),
+            'failureType': type(cause).__name__, 'failedCondition': condition,
+            'canonicalStateVerified': False, 'executionAuthorized': False})
         if upstream is not None:
             raise upstream from extraction_error
         raise

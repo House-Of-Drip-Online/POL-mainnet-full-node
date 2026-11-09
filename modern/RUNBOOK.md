@@ -89,6 +89,37 @@ reason is cleared. Bor then starts under the existing Heimdall gate, and the RPC
 gateway stays closed until native synchronization and independent checks pass.
 No pruning offsets, consensus roots or validation rules are changed.
 
+### Expired increment recovery (2026-11-09)
+
+The increment ending at 96,869,437 is no longer available (HTTP 404).
+The November 8 worker stopped while extracting receipts segment 1096;
+the completed base and incomplete increment remain evidence, not a valid node.
+The refreshed lock ends at 96,984,637 and preserves the identical base identity.
+Never splice an incomplete receipt segment into a newer snapshot or clear the
+maintenance gate to force this database online.
+
+For this recovery, retain the old stage and create a separate stage keyed by the
+new lock. The completed base can be reused by same-filesystem hard links after
+checking its completion identity, file inventory and total bytes. These shared
+immutable base segments are not an independent backup. Do not hard-link mutable
+increment metadata. Replay the entire newly pinned increment and retain its
+complete stream hash; only the existing structural and native acceptance gates
+may promote it.
+
+Preserving the 6.69 TB failed stage while extracting the new increment requires
+additional capacity. The prepared storage-only CloudFormation change sets
+`DataGiB=12288`, preserves all other parameters, and must show only the existing
+EBS data volume changing without replacement before execution. At the observed
+us-east-1 gp3 storage rate of $0.08/GB-month, the 4096 GiB increase adds $327.68
+per month while provisioned, excluding snapshot growth and tax. Confirm the
+volume identity, grow the existing XFS filesystem, then rerun the actual free
+capacity check before starting the worker. Do not format the volume.
+
+The restore now writes terminal `FAILED` evidence when a streaming component
+fails. Monitoring surfaces `RESTORE_FAILED` and leaves the RPC gate closed.
+Failure codes exclude signed transport URLs. A transfer percentage is never
+Bor synchronization progress.
+
 The read-only `modern/tools/bor-db-audit/main.go` can be built inside official Bor
 commit `3a018e38467594508ca31ebeaf804837fb92834a` with Go 1.26.10. It opens Pebble
 read-only and reports state/root metadata and retained-header continuity. Stop

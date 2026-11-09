@@ -72,6 +72,8 @@ def check(reference):
                     payload = result['restore']
                     if not isinstance(payload, dict):
                         raise ValueError('RESTORE_PROGRESS_RECORD_INVALID')
+                    if payload.get('status') == 'FAILED':
+                        result['failures'].append('RESTORE_FAILED')
                     if payload.get('status') in ('RESTORING', 'MERGING'):
                         checked = payload.get('checkedAt')
                         age = time.time() - checked if type(checked) in (int, float) else float('inf')

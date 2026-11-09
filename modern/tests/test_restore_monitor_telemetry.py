@@ -108,5 +108,15 @@ class RestoreMonitoringTests(unittest.TestCase):
         d=self.observe()
         self.assertIn("RESTORE_PROGRESS_MISSING",d["failures"])
 
+    def test_terminal_failure_cannot_appear_as_running_progress(self):
+        self.progress.write_text(json.dumps({'status':'FAILED','checkedAt':time.time(),
+            'component':'increment','failureType':'HTTPError','failedCondition':'HTTP_404',
+            'compressedBytesRead':500,'componentBytes':1000}))
+        d=self.observe()
+        self.assertEqual(d['status'],'FAIL')
+        self.assertIn('RESTORE_FAILED',d['failures'])
+        self.assertNotIn('restoreComponentPercent',d)
+        self.assertTrue(self.maintenance.exists())
+
 
 if __name__=="__main__":unittest.main()

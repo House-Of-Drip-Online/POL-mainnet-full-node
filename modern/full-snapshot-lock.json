@@ -1,7 +1,7 @@
 {
   "schema": "omega.full-snapshot-transport-lock.v1",
   "chainId": 137,
-  "observedAt": "2026-11-07T20:56:00Z",
+  "observedAt": "2026-11-09",
   "trust": "ETag and size pin transport objects; local SHA256 records exact downloaded bytes. Native synchronization and independent block/state verification remain mandatory.",
   "components": [
     {
@@ -15,12 +15,12 @@
     },
     {
       "name": "increment",
-      "url": "https://snapshots.publicnode.com/polygon-bor-part-75817089-96869437.tar.lz4",
-      "etag": "\"0eb74e163ab9136f90ab95ad85b8a47b-9991\"",
-      "compressedBytes": 3844656567849,
-      "maxUncompressedBytes": 4300000000000,
+      "url": "https://snapshots.publicnode.com/polygon-bor-part-75817089-96984637.tar.lz4",
+      "etag": "\"7ed2d2aad0ad585703f2b8317f5d5cd0-9978\"",
+      "compressedBytes": 3860502408879,
+      "maxUncompressedBytes": 4350000000000,
       "firstBlock": 75817089,
-      "lastBlock": 96869437
+      "lastBlock": 96984637
     }
   ]
 }
