@@ -126,6 +126,22 @@ def cloudwatch_metrics(result, node_name):
         metrics.append({'MetricName':'DiskUsedPercent','Value':result['diskUsedPercent'],'Unit':'Percent'})
     if 'diskFreeGiB' in result:
         metrics.append({'MetricName':'DiskFreeGiB','Value':result['diskFreeGiB'],'Unit':'Gigabytes'})
+    # Publish measured peer and lag health even when the overall gate fails.
+    # Missing or invalid readings are omitted, never represented as healthy zeros.
+    for field, metric_name, unit in (
+        ('peerCount', 'BorPeers', 'Count'),
+        ('lagBlocks', 'NodeLagBlocks', 'Count'),
+    ):
+        value = result.get(field)
+        if type(value) is int and 0 <= value < 2**53:
+            metrics.append({'MetricName':metric_name,'Value':value,'Unit':unit})
+    heimdall = result.get('heimdall')
+    if isinstance(heimdall, dict):
+        peers = heimdall.get('peers')
+        if type(peers) is int and 0 <= peers < 2**53:
+            metrics.append({'MetricName':'HeimdallPeers','Value':peers,'Unit':'Count'})
+    metrics.append({'MetricName':'RPCGateFailed',
+                    'Value':int(result['status'] != 'PASS'),'Unit':'Count'})
     if result.get('restoreProgressAgeSeconds') is not None:
         metrics.append({'MetricName':'RestoreProgressAgeSeconds',
                         'Value':max(0, result['restoreProgressAgeSeconds']),'Unit':'Seconds'})
