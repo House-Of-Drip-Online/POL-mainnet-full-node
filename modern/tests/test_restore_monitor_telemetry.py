@@ -119,4 +119,22 @@ class RestoreMonitoringTests(unittest.TestCase):
         self.assertTrue(self.maintenance.exists())
 
 
+    def test_rpc_peer_and_lag_metrics_preserve_real_measurements(self):
+        result = {'status':'PASS','failures':[],'peerCount':41,
+                  'lagBlocks':1,'heimdall':{'peers':24}}
+        metrics = {m['MetricName']:m['Value'] for m in monitor.cloudwatch_metrics(result,'node')}
+        self.assertEqual(metrics['BorPeers'],41)
+        self.assertEqual(metrics['HeimdallPeers'],24)
+        self.assertEqual(metrics['NodeLagBlocks'],1)
+        self.assertEqual(metrics['RPCGateFailed'],0)
+
+    def test_missing_and_malformed_rpc_metrics_never_become_zero(self):
+        result = {'status':'FAIL','failures':['RPC_READ_OR_RESPONSE_FAILED'],
+                  'peerCount':False,'lagBlocks':None,'heimdall':{'peers':'0'}}
+        metrics = {m['MetricName']:m['Value'] for m in monitor.cloudwatch_metrics(result,'node')}
+        for name in ('BorPeers','HeimdallPeers','NodeLagBlocks'):
+            self.assertNotIn(name,metrics)
+        self.assertEqual(metrics['RPCGateFailed'],1)
+
+
 if __name__=="__main__":unittest.main()
