@@ -1,0 +1,21 @@
+{
+  "schema": "maevn.local-source-ownership.v1",
+  "effective_date": "2026-10-10",
+  "system_id": "POL-NODE-ANSIBLE",
+  "repository": "House-Of-Drip-Online/POL-mainnet-full-node",
+  "owning_purpose": "Polygon node infrastructure provisioning",
+  "canonical_roots": [
+    "ansible/",
+    "Vagrantfile",
+    "run.sh",
+    "docs/"
+  ],
+  "legacy_or_divergent_state": "IN_DOMAIN",
+  "divergence": "Supplies RPC/data only, never registry promotion or arbitrage decisions.",
+  "master_registry_repository": "House-Of-Drip-Online/-MAEVN-HOLDINGS",
+  "master_registry_path": "topology/REPOSITORY_SOURCE_OWNERSHIP_2026-10-10.json",
+  "master_registry_blob_sha": "83bec76419519f0957ddf74f5b9d6b5e0f7c36dd",
+  "source_authority_invariant": "This system repository owns its own source only; master registry indexes, does not replace, its individual technical canon.",
+  "execution_authority_invariant": "No signing, catalog mutation or certification is inherited through co-ownership or source copies.",
+  "migration_status": "PROPOSED_STAGED_NOT_DEPLOYED"
+}
