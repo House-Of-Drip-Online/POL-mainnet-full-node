@@ -14,7 +14,7 @@ The default deployment path still requires a non-root administrative identity.
 - Dedicated Ubuntu 24.04 EC2 host, 16 vCPUs and 64 GiB RAM by default.
 - Encrypted 8 TiB gp3 data volume, 16,000 IOPS and 1,000 MiB/s provisioned
   throughput. Instance EBS baseline can be lower; measure actual performance.
-- Public P2P only; private read RPC on 8545, HTTP and WebSocket on the same port.
+- Public P2P only; private read-only HTTP RPC at `10.77.1.77:8545` and dedicated WebSocket RPC at `10.77.1.77:8546` in the verified 2026-11-17 deployment. These are distinct gateways; an open TCP listener is not node canonical readiness. Do not infer the deployed endpoints from historical combined-port templates.
 - Loopback Bor on 18545/18546, Heimdall REST on 1317 and CometBFT on 26657.
 - SSM, IMDSv2, dedicated instance role, bounded logs, disk/readiness alarms,
   daily crash-consistent snapshots retaining two recovery points.
