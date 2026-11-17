@@ -26,9 +26,7 @@ bill for stored data and changes, not simply the provisioned 8 TiB capacity.
 
 The instance has a public P2P address to avoid routing bulk chain downloads
 through NAT. Only ports 30303 TCP/UDP and 26656 TCP are internet-facing.
-Port 8545 accepts HTTP and WebSocket from the explicit client security group.
-Bor HTTP 18545, WSS 18546, privileged namespaces, Heimdall REST, and monitoring
-ports are loopback-only. No client security group is attached automatically to
+The current installed node uses **private HTTP `10.77.1.77:8545`** and **private WebSocket `10.77.1.77:8546`**, restricted to explicit client security groups. An older combined-port deployment description is historical and must not be used to configure current APEX/Hunter consumers. The Bor backend HTTP `127.0.0.1:18545` and WS `127.0.0.1:18546`, privileged namespaces, Heimdall REST, and monitoring ports remain loopback-only. Private `ws://` requires explicit trusted-network security policy; prefer `wss://` when TLS termination is configured. No client security group is attached automatically to
 existing engines. That attachment is a separate acceptance-driven integration.
 
 ## Snapshot bootstrap
