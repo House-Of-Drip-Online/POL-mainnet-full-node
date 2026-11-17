@@ -276,8 +276,8 @@ def install(settings):
     run('id','omega-rpc')
     Path('/run/omega-polygon').mkdir(mode=0o755,exist_ok=True)
     run('systemctl','daemon-reload')
-    run('systemctl','enable','heimdalld.service','omega-rpc.service','omega-monitor.timer')
-    run('systemctl','start','heimdalld.service','omega-rpc.service','omega-monitor.timer')
+    run('systemctl','enable','heimdalld.service','omega-rpc.service','omega-rpc-ws.service','omega-monitor.timer')
+    run('systemctl','start','heimdalld.service','omega-rpc.service','omega-rpc-ws.service','omega-monitor.timer')
     # Restore full Bor history separately so Heimdall and truthful monitoring
     # remain operational during the multi-terabyte transfer.
     target=Path('/data/bor/data/bor/chaindata')
