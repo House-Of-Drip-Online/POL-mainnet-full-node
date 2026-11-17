@@ -53,6 +53,10 @@ Resources:
           FromPort: 8545
           ToPort: 8545
           SourceSecurityGroupId: !Ref ClientSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 8546
+          ToPort: 8546
+          SourceSecurityGroupId: !Ref ClientSecurityGroup
       Tags:
         - {Key: System, Value: OMEGA-Polygon-Node}
   Logs:
@@ -275,7 +279,7 @@ Outputs:
   InstanceId: {Value: !Ref Node}
   DataVolumeId: {Value: !Ref DataVolume}
   PrivateRpc: {Value: !Sub 'http://${Node.PrivateIp}:8545'}
-  PrivateWebSocket: {Value: !Sub 'ws://${Node.PrivateIp}:8545'}
+  PrivateWebSocket: {Value: !Sub 'ws://${Node.PrivateIp}:8546'}
   ClientSecurityGroup: {Value: !Ref ClientSecurityGroup}
   LogGroup: {Value: !Ref Logs}
   Readiness: {Value: SYNCING_UNTIL_RUNTIME_GATES_PASS}
