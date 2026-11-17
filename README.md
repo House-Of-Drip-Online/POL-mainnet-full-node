@@ -1,3 +1,5 @@
+> **OMEGA 2026-11-17 maintenance and R2–R8 economic checkpoint:** [Verified node/route source changes and remaining production certification gates](modern/docs/OMEGA_LIVE_MAINTENANCE_NODE_ROUTE_CLOSURE_20261117.md). Preserves historical image evidence, independent Hunter/APEX/SYMEN authority, canonical-chain readiness and LIVE-off safety. Source/test commits do not automatically confer current-image parity or settled-profit certification.
+
 # OMEGA Polygon 137 full node
 
 The supported deployment is in [`modern/`](modern/README.md): Bor 2.11.0,
