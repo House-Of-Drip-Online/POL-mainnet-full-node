@@ -1,3 +1,5 @@
+> **2026-11-17 four-repository source/image/runtime audit:** [OMEGA verified deployment discrepancy and certification matrix](modern/docs/OMEGA_SOURCE_TO_DEPLOYMENT_GAP_AUDIT_20261117.md). This is a dated *evidence snapshot*, not a silent canon override or deployment certificate. Latest-main source, immutable ECR/ECS image provenance, exact 8545 HTTP/8546 WS configuration, Bor stack drift, independent Hunter/APEX/SYMEN admission and economic proof must be reconciled before SHADOW promotion; LIVE signing remains disabled.
+
 > **OMEGA 2026-11-17 maintenance and R2–R8 economic checkpoint:** [Verified node/route source changes and remaining production certification gates](modern/docs/OMEGA_LIVE_MAINTENANCE_NODE_ROUTE_CLOSURE_20261117.md). Preserves historical image evidence, independent Hunter/APEX/SYMEN authority, canonical-chain readiness and LIVE-off safety. Source/test commits do not automatically confer current-image parity or settled-profit certification.
 
 # OMEGA Polygon 137 full node
