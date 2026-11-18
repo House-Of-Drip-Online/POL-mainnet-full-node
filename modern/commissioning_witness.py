@@ -18,10 +18,13 @@ def evaluate_witness(observations, required_passes=25):
     previous=None
     examined=0
     for row in observations:
+        if "summary" in row:
+            continue
         examined+=1
         pin=row.get("canonicalComparisonBlock")
-        valid=(row.get("schema")=="omega.polygon137.rpc-gate.v1" and
-               row.get("chainId")==137 and row.get("status")=="PASS" and not row.get("failures") and
+        source_chain=row.get("chainId",row.get("sourceChainId"))
+        valid=(row.get("schema") in {"omega.polygon137.rpc-gate.v1","omega.polygon137.native-cycle-witness.v1"} and
+               source_chain==137 and row.get("status")=="PASS" and not row.get("failures") and
                isinstance(pin,int) and not isinstance(pin,bool) and pin>0 and
                (previous is None or pin>previous))
         count=count+1 if valid else 0

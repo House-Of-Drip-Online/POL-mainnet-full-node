@@ -9,7 +9,7 @@ CP-025 remains Fargate-only; older CodeBuild language is non-authoritative.
 
 Admit an individual workload as soon as at least one eligible provider has
 current, independently corroborated canonical evidence and the required method,
-state, transport and quota capabilities. Do not wait for all 14 inventory entries,
+state, transport and quota capabilities. Do not wait for a fixed inventory count (14 was a historical reference),
 25 new observations, a complete census or 5,000 graph pools. Unknown or missing
 capability is not a pass. Reject or defer only the affected workload.
 
@@ -37,8 +37,9 @@ profiles must never be loaded as operational configuration or copied into final
 runtime images. Runtime images declare OMEGA_CONFIGURATION_CONTEXT=RUNTIME;
 operational entrypoints reject BUILD, TEST, COMMISSIONING, build-source metadata,
 NODE_ENV=test and commissioning-pass variables. Node service units declare the
-same operational context. Explicit APEX/SYMEN runtime startup skips repository
-.env defaults. Compiler/test stages remain separate from final runtime stages.
+same operational context. APEX never automatically imports repository .env defaults. SYMEN explicit
+contexts skip them, and operational entrypoints normalize legacy injected-env
+startup to RUNTIME before reading settings. Compiler/test stages remain separate from final runtime stages.
 
 The APEX release contract and scripts/verification/verify-configuration-contexts.py
 check ECS definitions before deployment. Each context has its own configuration
@@ -57,7 +58,8 @@ change economic thresholds, quotas, route limits or timing windows.
 The existing application fabrics and private-node readiness gate do not contain
 a recurring 25-pass operational counter in the inspected source. This amendment
 makes that separation explicit; it does not pretend such a counter was removed.
-The node commissioning_witness.py aggregates captured canonical-header gate
+The existing node probes/native_25_cycle_cert.py remains the read-only collector.
+commissioning_witness.py consumes its captured records or canonical-header gate
 records independently. It cannot authorize operations, sign or broadcast. Its
 header witness is not full native-state, WSS, fault-injection or economic
 certification. Those additional witnesses remain required for their own release
@@ -93,7 +95,7 @@ realized results remain distinct.
 This change implements context profiles, operational startup guards, .env
 isolation and a separate header-witness aggregator. Existing native readiness,
 provider selection and economic controls remain authoritative. It does not by
-itself establish a fully inventoried/probed 14-provider registry, validated
+itself establish a fully inventoried/probed configured-provider registry, validated
 interim endpoints, complete per-method p50/p95/p99, all WSS/reorg/failover cases,
 source-matched deployment, continuous publication or complete SHADOW economics.
 Those require actual source integration and measured runtime artifacts; all

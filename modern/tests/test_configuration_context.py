@@ -40,3 +40,10 @@ class ConfigurationSeparationTests(unittest.TestCase):
 
     def test_wrong_chain_or_arbitrary_pass_label_cannot_count(self):
         self.assertFalse(evaluate_witness([{"status":"PASS","canonicalComparisonBlock":h} for h in range(100,125)])["witness_passed"])
+
+    def test_existing_native_collector_records_are_consumed_without_a_duplicate_collector(self):
+        rows=[{"schema":"omega.polygon137.native-cycle-witness.v1","sourceChainId":137,
+               "canonicalComparisonBlock":h,"status":"PASS","failures":[]} for h in range(100,125)]
+        result=evaluate_witness(rows+[{"summary":{"cycles":25}}])
+        self.assertTrue(result["witness_passed"])
+        self.assertEqual(result["observations_examined"],25)

@@ -16,10 +16,12 @@
     "validated_interim_allowed": true,
     "canonical_evidence_required": true,
     "capability_evidence_required": true,
-    "witness_blocks_operation": false
+    "witness_blocks_operation": false,
+    "private_provider_id": "polygon137-private-bor"
   },
-  "inventory_target": 14,
-  "inventory_target_blocks_operation": false,
   "rpc_budgets": "EXISTING_GOVERNED_CONFIGURATION",
-  "opportunity_timing": "EXISTING_CANONICAL_C1_C2_RULES"
+  "opportunity_timing": "EXISTING_CANONICAL_C1_C2_RULES",
+  "inventory_scope": "ALL_CONFIGURED_PROVIDERS",
+  "historical_inventory_reference_count": 14,
+  "inventory_count_blocks_operation": false
 }

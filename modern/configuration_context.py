@@ -14,3 +14,5 @@ def assert_operational_configuration(env: Mapping[str, str] | None = None) -> No
     if (env.get("OMEGA_COMMISSIONING_REQUIRED_OBSERVATIONS") or
             env.get("OMEGA_CERTIFICATION_WITNESS_REQUIRED_PASSES")):
         raise ValueError("OMEGA_RUNTIME_WITNESS_CONFIGURATION_FORBIDDEN")
+    if env is os.environ:
+        os.environ["OMEGA_CONFIGURATION_CONTEXT"] = "RUNTIME"
