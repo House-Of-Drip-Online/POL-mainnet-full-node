@@ -11,7 +11,11 @@ class ReleaseLockTests(unittest.TestCase):
         self.assertEqual(lock['schema'],'omega.polygon137.node-release-lock.v1')
         self.assertEqual(lock['chainId'],137)
         self.assertEqual(lock['architecture'],'amd64')
-        self.assertEqual(lock['bor']['tag'],'v2.11.0')
+        self.assertEqual(lock['bor']['tag'],'v2.11.1')
+        self.assertEqual(lock['bor']['artifacts'][0]['sha256'],
+            '8de72a68f3e9d0fb038752e2e3d89395d8d7d5ecd75aebc7915d6de0fddab404')
+        self.assertEqual(lock['bor']['artifacts'][1]['sha256'],
+            '747f7f542739634110ed38425d918e50ffb078fe5d43cc969ed57e194114aeda')
         self.assertEqual(lock['heimdall']['tag'],'v0.13.2')
         for product in ('bor','heimdall'):
             for artifact in lock[product]['artifacts']:

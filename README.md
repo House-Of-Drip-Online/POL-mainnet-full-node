@@ -6,7 +6,7 @@
 
 # OMEGA Polygon 137 full node
 
-The supported deployment is in [`modern/`](modern/README.md): Bor 2.11.0,
+The supported deployment is in [`modern/`](modern/README.md): Bor 2.11.1,
 Heimdall-v2 0.13.2, Ubuntu 24.04, AWS EC2, encrypted retained EBS, private
 read-only HTTP/WebSocket RPC, and SSM administration.
 
