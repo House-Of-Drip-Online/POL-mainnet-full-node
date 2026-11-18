@@ -1,7 +1,7 @@
 # OMEGA Polygon 137 node
 
 This is the canonical implementation from `House-Of-Drip-Online/POL-mainnet-full-node`.
-It deploys a non-validator data node using official, SHA256-pinned Bor 2.11.0 and
+It deploys a non-validator data node using official, SHA256-pinned Bor 2.11.1 and
 Heimdall-v2 0.13.2 packages and the verified migrated mainnet genesis.
 
 Read [RUNBOOK.md](RUNBOOK.md), [recovery triage](recovery_advisor.py), and [the 2026 dual-repository gap closure](docs/POLYGON_NODE_DAPPNODE_GAP_CLOSURE_20261108.md) for deployment and operations and
