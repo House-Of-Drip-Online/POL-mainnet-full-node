@@ -1,0 +1,242 @@
+{
+  "schema": "omega.g0.discrepancy-ledger.v1",
+  "target_version": "OMEGA-G0-ADMISSION-001/CONFIG-BOUNDARIES-v1",
+  "target_status": "LOCKED_BY_OWNER_DIRECTIVE",
+  "source_attachment_sha256": "97b45b162ae456a532013807a86d6370a9e5a36f51aca732ecf483ce9988a70f",
+  "owner_repository": "polygon-node",
+  "base_sha": "a7f9aea57fc60f7db882e927faebf870a343cb57",
+  "source_claim": "CONFIGURATION_ISOLATION_IMPLEMENTED_LOCAL_TESTED",
+  "deployed": false,
+  "certified": false,
+  "convergence_proven": false,
+  "risk_quantification": "UNQUANTIFIED_PENDING_RUNTIME_EVIDENCE",
+  "skill_journal": {
+    "target_state_reverse_engineering": "INSTRUCTIONS_READ_AND_LEDGER_APPLIED",
+    "source_code_engineering_development": "INSTRUCTIONS_AND_REFERENCES_READ",
+    "tools": "source edits, compiler/source checks, unit/integration fixtures, read-only AWS baseline",
+    "baseline_reproduction": "SYMEN baseline .env isolation failure captured after patch development; not claimed as prior RED"
+  },
+  "debts": [
+    {
+      "debt_id": "CTX-001",
+      "target_reference": "Operational configuration must exclude build/test/witness inputs",
+      "current_evidence": "Startup previously accepted mixed contexts",
+      "confidence": "Primary",
+      "gap": "Source correction locally tested; runtime proof outstanding",
+      "severity": "High",
+      "depends_on": [],
+      "source_paths": [
+        "House-Of-Drip-Online/ASSET-HUNTER-DISCOVERY:src/runtime/configuration-context.ts",
+        "House-Of-Drip-Online/Apex-Omega-AWS-DOCKER:backend/logistics/src/config/ConfigurationContext.ts",
+        "House-Of-Drip-Online/SYMEN:src/symen/configuration_context.py"
+      ],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Context regression suites plus exact-image startup/readback",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "IMPLEMENTED_LOCAL_TESTED"
+    },
+    {
+      "debt_id": "CTX-002",
+      "target_reference": "Operational runtime must not import repository .env fixtures",
+      "current_evidence": "Baseline SYMEN .env reproduction failed the runtime isolation assertion",
+      "confidence": "Primary",
+      "gap": "Source correction locally tested; runtime proof outstanding",
+      "severity": "High",
+      "depends_on": [
+        "CTX-001"
+      ],
+      "source_paths": [
+        "House-Of-Drip-Online/SYMEN:src/symen/config.py",
+        "House-Of-Drip-Online/Apex-Omega-AWS-DOCKER:backend/logistics/src/config.ts"
+      ],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Actual temporary .env isolation test and packaged runtime",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "IMPLEMENTED_LOCAL_TESTED"
+    },
+    {
+      "debt_id": "CTX-003",
+      "target_reference": "Commissioning witness must not gate ordinary admission",
+      "current_evidence": "Inspected provider/monitor source has no recurring 25-pass gate; explicit separate profile and header aggregator added",
+      "confidence": "Primary",
+      "gap": "Commissioning witness must not gate ordinary admission",
+      "severity": "Medium",
+      "depends_on": [],
+      "source_paths": [
+        "House-Of-Drip-Online/POL-mainnet-full-node:modern/commissioning_witness.py",
+        "ALL_OMEGA_REPOSITORIES:config/profiles/commissioning.json (node: modern/config/profiles)"
+      ],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Independent witness tests; full native/WSS/fault witnesses remain separate",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "PARTIAL"
+    },
+    {
+      "debt_id": "G0-014",
+      "target_reference": "All configured provider identities and capabilities must be governed; 14 is historical, not a gate",
+      "current_evidence": "Elastic inventory policy adopted; complete fresh verified configured-provider inventory not yet established",
+      "confidence": "Primary",
+      "gap": "All 14 provider identities/capabilities must be inventoried and governed",
+      "severity": "Critical",
+      "depends_on": [
+        "CTX-001"
+      ],
+      "source_paths": [],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Sanitized actual-workload inventory and per-method/capability evidence",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    },
+    {
+      "debt_id": "G0-INTERIM",
+      "target_reference": "Validated interim providers may serve eligible workloads during node recovery",
+      "current_evidence": "Hunter deployed private-only flag remains true; no new interim runtime admission proved",
+      "confidence": "Primary",
+      "gap": "Validated interim providers may serve eligible workloads during node recovery",
+      "severity": "Critical",
+      "depends_on": [
+        "G0-014"
+      ],
+      "source_paths": [],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Independent canonical/native-state/failover proof before runtime binding",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    },
+    {
+      "debt_id": "NODE-READY",
+      "target_reference": "Private node must recover; a responsive stale node is not ready",
+      "current_evidence": "Read-only SSM probe a555fed4-d888-4428-84b4-8f5c7babd5b3: Bor 2.11.1, lag 9525, private gateway unavailable",
+      "confidence": "Primary",
+      "gap": "Private node must recover; a responsive stale node is not ready",
+      "severity": "Critical",
+      "depends_on": [],
+      "source_paths": [
+        "House-Of-Drip-Online/POL-mainnet-full-node:modern/rpc_gate.py",
+        "House-Of-Drip-Online/POL-mainnet-full-node:modern/monitor.py"
+      ],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Fresh independent canonical hash, current head and representative state reads",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    },
+    {
+      "debt_id": "DEPLOY-CTX",
+      "target_reference": "All runtime images/definitions must contain the context isolation change",
+      "current_evidence": "Fresh ECS baseline predates this change; APEX remains worker204/ingress16",
+      "confidence": "Primary",
+      "gap": "All runtime images/definitions must contain the context isolation change",
+      "severity": "High",
+      "depends_on": [
+        "CTX-001",
+        "CTX-002"
+      ],
+      "source_paths": [
+        "House-Of-Drip-Online/Apex-Omega-AWS-DOCKER:deploy/aws/fargate-release-path.json",
+        "House-Of-Drip-Online/Apex-Omega-AWS-DOCKER:scripts/verification/verify-configuration-contexts.py"
+      ],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Exact-source Fargate build, separate config digests, coordinated rollout and readback",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    },
+    {
+      "debt_id": "WITNESS-FULL",
+      "target_reference": "Commissioning proof must cover native state, WSS/replay/reorg and faults",
+      "current_evidence": "New aggregator is explicitly canonical HTTP headers only, without authentication verification",
+      "confidence": "Primary",
+      "gap": "Commissioning proof must cover native state, WSS/replay/reorg and faults",
+      "severity": "High",
+      "depends_on": [
+        "G0-014",
+        "NODE-READY"
+      ],
+      "source_paths": [
+        "House-Of-Drip-Online/POL-mainnet-full-node:modern/commissioning_witness.py"
+      ],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Integrity-protected complete workload-specific witnesses",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    },
+    {
+      "debt_id": "SHADOW-E2E",
+      "target_reference": "Independent consumers must prove exact quotes, Rust economics and exact-payload simulation",
+      "current_evidence": "No new complete end-to-end acceptance evidence collected by this patch",
+      "confidence": "Primary",
+      "gap": "Independent consumers must prove exact quotes, Rust economics and exact-payload simulation",
+      "severity": "Critical",
+      "depends_on": [
+        "G0-INTERIM",
+        "DEPLOY-CTX"
+      ],
+      "source_paths": [],
+      "proposed_repayment": "Implement/verify the referenced target without weakening authority; preserve independent consumers",
+      "verification_method": "Independent APEX/SYMEN real-Polygon SHADOW traces and accounting/recovery evidence",
+      "residual_risk": "Not quantified without current workload/runtime evidence",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    },
+    {
+      "debt_id": "CI-NODE-BILLING",
+      "target_reference": "Node source validation must actually execute",
+      "current_evidence": "GitHub check 134515530931: job not started because account is locked due to billing; runner name empty, steps empty",
+      "confidence": "Primary",
+      "gap": "GitHub Actions did not execute validation; independent Fargate verification is required",
+      "severity": "High",
+      "depends_on": [],
+      "source_paths": [
+        "House-Of-Drip-Online/POL-mainnet-full-node:.github/workflows/node-validation.yml"
+      ],
+      "proposed_repayment": "Use authorized Fargate verification with exact source; do not report the failed startup as passed",
+      "verification_method": "Actual Fargate Python tests, cfn-lint and Ansible syntax-check exit codes with preserved source provenance",
+      "residual_risk": "Unquantified until execution evidence exists",
+      "status": "Open",
+      "source_dimension": "UNPROVEN_CI"
+    },
+    {
+      "debt_id": "NODE-SOURCE-PROVENANCE",
+      "target_reference": "Node runtime artifact must match governed source lock",
+      "current_evidence": "Node source release-lock pins Bor 2.11.0; fresh runtime reports Bor 2.11.1 commit 156755608234bb4220460abd4d8c9ef691691010",
+      "confidence": "Primary",
+      "gap": "Runtime/source package-lock drift remains",
+      "severity": "High",
+      "depends_on": [],
+      "source_paths": [
+        "House-Of-Drip-Online/POL-mainnet-full-node:modern/release-lock.json"
+      ],
+      "proposed_repayment": "Independently verify official package digests and reconcile a non-destructive node release",
+      "verification_method": "Official artifact digest, source lock, installed binary hash/version and current-state readback",
+      "residual_risk": "Not quantified; database/recovery volumes must be preserved",
+      "status": "Open",
+      "source_dimension": "UNPROVEN"
+    }
+  ],
+  "adversarial_checks": [
+    {
+      "challenge": "Can a BUILD or COMMISSIONING profile start an operational entrypoint?",
+      "evidence": "Context regression cases reject these contexts; runtime guards are wired before service work."
+    },
+    {
+      "challenge": "Can runtime silently load a repository fixture .env?",
+      "evidence": "Explicit runtime dotenv is skipped; SYMEN tests a real temporary .env and rejects injected build-profile JSON."
+    },
+    {
+      "challenge": "Does the header witness manufacture full Gate Zero or financial authority?",
+      "evidence": "No: output explicitly denies execution, native-pool, WSS and authentication certification."
+    },
+    {
+      "challenge": "Does passing local source verification prove current deployment?",
+      "evidence": "No: DEPLOY-CTX remains OPEN and deployed/certified remain false."
+    }
+  ],
+  "ledger_open_balance": 11
+}

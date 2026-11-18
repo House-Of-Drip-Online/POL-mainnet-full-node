@@ -300,6 +300,8 @@ def install(settings):
 
 
 def main():
+    from configuration_context import assert_operational_configuration
+    assert_operational_configuration()
     p=argparse.ArgumentParser()
     p.add_argument('--settings',default='/etc/omega-polygon/settings.json')
     args=p.parse_args()

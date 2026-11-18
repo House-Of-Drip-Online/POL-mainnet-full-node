@@ -167,6 +167,8 @@ def emit_cloudwatch(settings,result):
 
 
 def main():
+    from configuration_context import assert_operational_configuration
+    assert_operational_configuration()
     p=argparse.ArgumentParser()
     p.add_argument('--settings',default='/etc/omega-polygon/settings.json')
     p.add_argument('--heimdall-only',action='store_true')

@@ -19,5 +19,7 @@ jobs:
           cache-dependency-path: modern/requirements-dev.txt
       - run: pip install -r modern/requirements-dev.txt
       - run: python -m unittest discover -s modern/tests -v
+        env:
+          OMEGA_CONFIGURATION_CONTEXT: TEST
       - run: cfn-lint modern/aws/node.yaml
       - run: ansible-playbook --syntax-check -i 'polygon_node,' modern/deploy-host.yml
