@@ -1,0 +1,11 @@
+{
+  "schema": "omega.configuration-profile.v1",
+  "context": "BUILD",
+  "environment": {
+    "OMEGA_CONFIGURATION_CONTEXT": "BUILD"
+  },
+  "authority": "FARGATE_ONLY",
+  "operational_rpc_bindings": false,
+  "runtime_configuration_export": false,
+  "fixtures_authorize_execution": false
+}

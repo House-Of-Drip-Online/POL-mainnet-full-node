@@ -1,0 +1,25 @@
+{
+  "schema": "omega.configuration-profile.v1",
+  "context": "RUNTIME",
+  "environment": {
+    "OMEGA_CONFIGURATION_CONTEXT": "RUNTIME"
+  },
+  "chain_id": 137,
+  "mode": "SHADOW",
+  "live_signing": false,
+  "live_broadcast": false,
+  "load_repository_dotenv": false,
+  "provider_admission": {
+    "contract": "OMEGA-G0-ADMISSION-001",
+    "minimum_eligible_per_workload": 1,
+    "private_node_preferred": true,
+    "validated_interim_allowed": true,
+    "canonical_evidence_required": true,
+    "capability_evidence_required": true,
+    "witness_blocks_operation": false
+  },
+  "inventory_target": 14,
+  "inventory_target_blocks_operation": false,
+  "rpc_budgets": "EXISTING_GOVERNED_CONFIGURATION",
+  "opportunity_timing": "EXISTING_CANONICAL_C1_C2_RULES"
+}

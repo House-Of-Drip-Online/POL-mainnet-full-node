@@ -5,6 +5,7 @@ Wants=network-online.target
 StartLimitIntervalSec=0
 
 [Service]
+Environment=OMEGA_CONFIGURATION_CONTEXT=RUNTIME
 Type=simple
 User=omega-rpc
 Group=nogroup

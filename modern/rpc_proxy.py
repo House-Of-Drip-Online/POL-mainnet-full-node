@@ -193,6 +193,8 @@ def create_app(readiness_path, upstream_http='http://127.0.0.1:18545',
 SESSION=web.AppKey('session',ClientSession)
 
 def main():
+    from configuration_context import assert_operational_configuration
+    assert_operational_configuration()
     p=argparse.ArgumentParser()
     p.add_argument('--bind',required=True)
     p.add_argument('--readiness',default='/run/omega-polygon/readiness.json')

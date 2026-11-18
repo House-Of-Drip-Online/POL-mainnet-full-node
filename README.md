@@ -105,3 +105,8 @@ This repository remains an independent project/build boundary. Shared trust and 
 Source ownership, active versus archival loci, external authority boundaries, and known divergences are documented in [`docs/SOURCE_AUTHORITY_MATRIX.md`](docs/SOURCE_AUTHORITY_MATRIX.md), governed portfolio-wide by `House-Of-Drip-Online/-MAEVN-HOLDINGS/topology/APEX_SOURCE_AUTHORITY_MATRIX.md` (APEX-SOURCE-001). File presence alone does not establish runtime, deployment, registry, execution, or certification authority.
 
 </details>
+
+
+## OMEGA-G0-ADMISSION-001 — continuous admission and configuration separation
+
+The owner-approved [operational admission and configuration context amendment](docs/canon/OMEGA_G0_ADMISSION_CONFIG_CONTEXTS_20261117.md) governs recurring provider admission. Twenty-five observations remain a separate commissioning witness; they are not a per-provider-selection or per-cycle startup prerequisite. Build/test, commissioning and operational mainnet configuration are separate contexts. Real Polygon reads remain SHADOW-only without separate LIVE authorization.

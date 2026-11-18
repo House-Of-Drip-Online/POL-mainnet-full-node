@@ -1,0 +1,13 @@
+{
+  "schema": "omega.configuration-profile.v1",
+  "context": "COMMISSIONING",
+  "environment": {
+    "OMEGA_CONFIGURATION_CONTEXT": "COMMISSIONING"
+  },
+  "required_consecutive_passes": 25,
+  "requires_advancing_heads": true,
+  "fault_cases_required": true,
+  "blocks_operational_admission": false,
+  "signing": false,
+  "broadcast": false
+}
